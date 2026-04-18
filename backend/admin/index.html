@@ -277,8 +277,8 @@
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
           <div class="flex items-center justify-between gap-4 mb-4">
             <div>
-              <h3 class="text-lg font-bold">Support Threads</h3>
-              <p class="text-sm text-slate-500">สรุปข้อความช่วยเหลือของแต่ละผู้ใช้จาก `support_messages`</p>
+              <h3 class="text-lg font-bold">Support Threads / ตอบกลับผู้ใช้</h3>
+              <p class="text-sm text-slate-500">เปิด thread เพื่ออ่านและพิมพ์ตอบกลับผู้ใช้จาก `support_messages` ได้ทันที</p>
             </div>
             <div class="text-sm text-slate-500">ทั้งหมด <span class="font-bold text-slate-800" id="support-count-label">0</span> threads</div>
           </div>
@@ -390,6 +390,28 @@
       <div id="message-modal-body" class="p-6 max-h-[70vh] overflow-y-auto space-y-3">
         <div class="text-sm text-slate-500">กำลังโหลดข้อมูล...</div>
       </div>
+      <div id="message-modal-composer" class="hidden border-t border-slate-200 p-6 bg-slate-50">
+        <div class="text-sm font-medium text-slate-700 mb-3">ตอบกลับผู้ใช้</div>
+        <div class="flex flex-col gap-3">
+          <textarea
+            id="message-modal-input"
+            rows="3"
+            class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 resize-none focus:outline-none focus:ring-2 focus:ring-brand/30"
+            placeholder="พิมพ์ข้อความตอบกลับจากแอดมิน..."
+          ></textarea>
+          <div class="flex items-center justify-between gap-3">
+            <div class="text-xs text-slate-500">ข้อความนี้จะถูกบันทึกเป็น `support` ใน backend</div>
+            <button
+              type="button"
+              id="message-modal-send"
+              onclick="sendSupportReply()"
+              class="px-4 py-2 rounded-xl bg-brand text-white text-sm font-medium hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ส่งข้อความ
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -406,6 +428,9 @@
       usersData: [],
       currentFilter: 'all',
       activeAlertUserId: null,
+      activeSupportUserId: null,
+      activeSupportThreadTitle: '',
+      messageModalMode: null,
       map: null,
       markers: {},
       acknowledgedDangerUserIds: new Set(),
@@ -421,12 +446,26 @@
         .replaceAll("'", '&#39;');
     }
 
-    async function apiGet(path) {
-      const response = await fetch(path);
+    async function apiRequest(path, init) {
+      const response = await fetch(path, init);
       if (!response.ok) {
         throw new Error(await response.text());
       }
       return response.json();
+    }
+
+    async function apiGet(path) {
+      return apiRequest(path);
+    }
+
+    async function apiPost(path, body) {
+      return apiRequest(path, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
     }
 
     function formatDateTime(value) {
@@ -611,7 +650,7 @@
         if (user.status === 'warning') {
           statusStyles = 'border-l-4 border-warning bg-orange-50';
           icon = '<div class="w-8 h-8 rounded bg-warning-soft text-warning flex items-center justify-center"><i data-lucide="clock-3" class="w-4 h-4"></i></div>';
-          action = `<button type="button" onclick="openSupportThread(${user.id})" class="text-xs bg-white border border-slate-300 px-2 py-1 rounded hover:bg-slate-100 whitespace-nowrap">ดู thread</button>`;
+          action = `<button type="button" onclick="openSupportThread(${user.id})" class="text-xs bg-white border border-slate-300 px-2 py-1 rounded hover:bg-slate-100 whitespace-nowrap">เปิดและตอบกลับ</button>`;
         }
 
         if (user.status === 'danger') {
@@ -731,7 +770,7 @@
             <td class="px-4 py-3 text-slate-500">${escapeHtml(item.last_message_at ? formatDateTime(item.last_message_at) : '-')}</td>
             <td class="px-4 py-3 text-right">
               <button type="button" onclick="openSupportThread(${item.user_id})" class="px-3 py-1.5 rounded-lg text-xs font-medium ${disabled ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-900 text-white hover:bg-slate-800'}" ${disabled ? 'disabled' : ''}>
-                เปิดข้อความ
+                เปิดและตอบกลับ
               </button>
             </td>
           </tr>
@@ -889,13 +928,16 @@
     async function openSupportThread(userId) {
       const thread = (state.dashboard?.supportThreads || []).find((item) => item.user_id === userId);
       const title = thread ? `Support: ${thread.display_name}` : 'Support Thread';
+      state.activeSupportUserId = userId;
+      state.activeSupportThreadTitle = title;
+      state.messageModalMode = 'support';
 
       openMessageModal(title, 'กำลังโหลดข้อความ support...');
       try {
         const messages = await apiGet(`/api/admin/support/${userId}/messages`);
         renderMessageModal(
           title,
-          `${messages.length} ข้อความ`,
+          `${messages.length} ข้อความ · พิมพ์ตอบกลับได้ด้านล่าง`,
           messages.map((item) => ({
             title: item.senderType === 'support' ? 'Support' : 'ผู้ใช้',
             body: item.content,
@@ -903,7 +945,9 @@
             variant: item.senderType === 'support' ? 'support' : 'user',
           }))
         );
+        toggleMessageComposer(true);
       } catch (error) {
+        toggleMessageComposer(true);
         renderMessageModal(title, 'โหลดไม่สำเร็จ', [{
           title: 'Error',
           body: error.message,
@@ -916,8 +960,12 @@
     async function openConversationMessages(conversationId) {
       const conversation = (state.dashboard?.conversations || []).find((item) => item.id === conversationId);
       const title = conversation ? `Conversation: ${conversation.name}` : `Conversation #${conversationId}`;
+      state.activeSupportUserId = null;
+      state.activeSupportThreadTitle = '';
+      state.messageModalMode = 'conversation';
 
       openMessageModal(title, 'กำลังโหลดข้อความในห้องแชต...');
+      toggleMessageComposer(false);
       try {
         const messages = await apiGet(`/api/admin/conversations/${conversationId}/messages`);
         renderMessageModal(
@@ -940,6 +988,14 @@
       }
     }
 
+    function toggleMessageComposer(visible) {
+      const composer = document.getElementById('message-modal-composer');
+      composer.classList.toggle('hidden', !visible);
+      if (!visible) {
+        document.getElementById('message-modal-input').value = '';
+      }
+    }
+
     function openMessageModal(title, subtitle) {
       document.getElementById('message-modal-title').textContent = title;
       document.getElementById('message-modal-subtitle').textContent = subtitle;
@@ -947,6 +1003,7 @@
       const modal = document.getElementById('message-modal');
       modal.classList.remove('hidden');
       modal.classList.add('flex');
+      toggleMessageComposer(false);
       lucide.createIcons();
     }
 
@@ -983,6 +1040,53 @@
       const modal = document.getElementById('message-modal');
       modal.classList.add('hidden');
       modal.classList.remove('flex');
+      toggleMessageComposer(false);
+      state.activeSupportUserId = null;
+      state.activeSupportThreadTitle = '';
+      state.messageModalMode = null;
+    }
+
+    async function sendSupportReply() {
+      if (!state.activeSupportUserId) {
+        showToast('ไม่พบผู้ใช้ที่ต้องการตอบกลับ');
+        return;
+      }
+
+      const input = document.getElementById('message-modal-input');
+      const sendButton = document.getElementById('message-modal-send');
+      const content = input.value.trim();
+
+      if (!content) {
+        showToast('กรุณาพิมพ์ข้อความก่อนส่ง');
+        return;
+      }
+
+      const originalLabel = sendButton.textContent;
+      sendButton.disabled = true;
+      sendButton.textContent = 'กำลังส่ง...';
+
+      try {
+        const messages = await apiPost(`/api/admin/support/${state.activeSupportUserId}/messages`, { content });
+        input.value = '';
+        renderMessageModal(
+          state.activeSupportThreadTitle || 'Support Thread',
+          `${messages.length} ข้อความ · พิมพ์ตอบกลับได้ด้านล่าง`,
+          messages.map((item) => ({
+            title: item.senderType === 'support' ? 'Support' : 'ผู้ใช้',
+            body: item.content,
+            meta: item.createdAt ? formatDateTime(item.createdAt) : item.timestamp,
+            variant: item.senderType === 'support' ? 'support' : 'user',
+          }))
+        );
+        toggleMessageComposer(true);
+        await loadDashboard();
+        showToast('ส่งข้อความตอบกลับแล้ว');
+      } catch (error) {
+        showToast(`ส่งข้อความไม่สำเร็จ: ${error.message}`);
+      } finally {
+        sendButton.disabled = false;
+        sendButton.textContent = originalLabel;
+      }
     }
 
     function maybeOpenInitialDangerAlert() {

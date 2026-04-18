@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { colors } from '../theme/colors';
@@ -11,6 +11,8 @@ interface CountdownTimerProps {
 
 export function CountdownTimer({ seconds, onComplete }: CountdownTimerProps) {
   const [remaining, setRemaining] = useState(seconds);
+  const onCompleteRef = useRef(onComplete);
+  const hasCompletedRef = useRef(false);
 
   const SIZE = 120;
   const RADIUS = 50;
@@ -19,20 +21,34 @@ export function CountdownTimer({ seconds, onComplete }: CountdownTimerProps) {
   const strokeDashoffset = CIRCUMFERENCE * (1 - progress);
 
   useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  useEffect(() => {
+    hasCompletedRef.current = false;
     setRemaining(seconds);
-    const interval = setInterval(() => {
-      setRemaining(prev => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          onComplete();
-          return 0;
-        }
-        return prev - 1;
-      });
+  }, [seconds]);
+
+  useEffect(() => {
+    if (remaining <= 0) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setRemaining(prev => Math.max(prev - 1, 0));
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, [seconds, onComplete]);
+    return () => clearTimeout(timeout);
+  }, [remaining]);
+
+  useEffect(() => {
+    if (remaining !== 0 || hasCompletedRef.current) {
+      return;
+    }
+
+    hasCompletedRef.current = true;
+    onCompleteRef.current();
+  }, [remaining]);
 
   return (
     <View style={styles.container}>

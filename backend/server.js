@@ -586,6 +586,33 @@ app.get('/api/admin/support/:userId/messages', (req, res) => {
   }
 });
 
+app.post('/api/admin/support/:userId/messages', (req, res) => {
+  try {
+    const userId = Number(req.params.userId);
+    const content = String(req.body?.content || '').trim();
+
+    if (!userId) {
+      return res.status(400).json({ message: 'userId is required' });
+    }
+
+    if (!content) {
+      return res.status(400).json({ message: 'content is required' });
+    }
+
+    ensureMobileUserExists(userId);
+    ensureSupportThreadSeeded(userId);
+
+    db.prepare(`
+      INSERT INTO support_messages (user_id, sender_type, content)
+      VALUES (?, 'support', ?)
+    `).run(userId, content);
+
+    return res.status(201).json(getSupportMessagesForUser(userId));
+  } catch (err) {
+    return res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
 app.get('/api/app/users/search', (req, res) => {
   try {
     const requesterId = Number(req.query.requesterId);
@@ -1221,11 +1248,6 @@ app.post('/api/app/users/:userId/support-messages', (req, res) => {
       INSERT INTO support_messages (user_id, sender_type, content)
       VALUES (?, 'user', ?)
     `).run(userId, content);
-
-    db.prepare(`
-      INSERT INTO support_messages (user_id, sender_type, content)
-      VALUES (?, 'support', ?)
-    `).run(userId, 'ได้รับข้อความของคุณแล้ว หากเป็นเหตุฉุกเฉินกรุณาใช้ปุ่ม SOS ทันที');
 
     return res.status(201).json(getSupportMessagesForUser(userId));
   } catch (err) {
