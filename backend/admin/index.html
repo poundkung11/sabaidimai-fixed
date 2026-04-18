@@ -3,798 +3,433 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sabaai-Dii-Mai Admin Dashboard</title>
+  <title>Sabaai-Dii-Mai - Safety Monitoring Dashboard</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Sarabun', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              DEFAULT: '#22c55e',
+              soft: 'rgba(34, 197, 94, 0.1)',
+            },
+            danger: {
+              DEFAULT: '#ef4444',
+              soft: 'rgba(239, 68, 68, 0.1)',
+            },
+            warning: {
+              DEFAULT: '#f59e0b',
+              soft: 'rgba(245, 158, 11, 0.1)',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
-
-    :root {
-      --bg: #f6f5ef;
-      --card: #ffffff;
-      --line: rgba(0, 0, 0, 0.08);
-      --text: #2f312f;
-      --muted: #70757b;
-      --primary: #22c55e;
-      --primary-soft: rgba(34, 197, 94, 0.1);
-      --warning: #d9a95f;
-      --danger: #b44c4c;
-      --blue: #3b82f6;
-      --shadow: 0 18px 40px rgba(31, 41, 55, 0.08);
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Sarabun', sans-serif;
-      background: linear-gradient(180deg, #faf9f4 0%, #f1f0e9 100%);
-      color: var(--text);
-      min-height: 100vh;
-    }
-
-    .shell {
-      display: grid;
-      grid-template-columns: 260px 1fr;
-      min-height: 100vh;
-    }
-
-    .sidebar {
-      border-right: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.92);
-      backdrop-filter: blur(10px);
-      padding: 28px 18px;
-      position: sticky;
-      top: 0;
-      height: 100vh;
-    }
-
-    .brand {
-      padding: 10px 12px 20px;
-      border-bottom: 1px solid var(--line);
-      margin-bottom: 20px;
-    }
-
-    .brand-mark {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 8px;
-    }
-
-    .brand-icon {
-      width: 42px;
-      height: 42px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, var(--primary), #6ddf96);
-      display: grid;
-      place-items: center;
-      color: #fff;
-      font-size: 20px;
-      font-weight: 700;
-    }
-
-    .brand h1 {
-      font-size: 17px;
-      line-height: 1.3;
-    }
-
-    .brand p {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .nav {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .nav button {
-      width: 100%;
-      text-align: left;
-      border: 0;
-      background: transparent;
-      border-radius: 12px;
-      padding: 12px 14px;
-      font: inherit;
-      color: var(--muted);
-      cursor: pointer;
-      transition: 0.18s ease;
-    }
-
-    .nav button:hover,
-    .nav button.active {
-      background: var(--primary-soft);
-      color: #15803d;
-      font-weight: 600;
-    }
-
-    .sidebar-note {
-      margin-top: 22px;
-      padding: 14px;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      background: #fff;
-      box-shadow: var(--shadow);
-    }
-
-    .sidebar-note .label {
-      font-size: 11px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 8px;
-    }
-
-    .sidebar-note .value {
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .main {
-      padding: 28px;
-    }
-
-    .topbar {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 18px;
-      margin-bottom: 22px;
-    }
-
-    .topbar h2 {
-      font-size: 28px;
-      line-height: 1.1;
-    }
-
-    .topbar p {
-      margin-top: 6px;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .button {
-      border: 0;
-      border-radius: 12px;
-      padding: 11px 16px;
-      font: inherit;
-      cursor: pointer;
-      transition: 0.18s ease;
-    }
-
-    .button.primary {
-      background: var(--primary);
-      color: #fff;
-      font-weight: 600;
-    }
-
-    .button.secondary {
-      background: #fff;
-      border: 1px solid var(--line);
-      color: var(--text);
-    }
-
-    .status-pill {
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      padding: 10px 14px;
-      font-size: 13px;
-      color: var(--muted);
-    }
-
-    .status-pill strong {
-      color: var(--text);
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 14px;
-      margin-bottom: 18px;
-    }
-
-    .stat-card,
-    .panel {
-      background: rgba(255, 255, 255, 0.92);
-      border: 1px solid var(--line);
-      border-radius: 22px;
-      box-shadow: var(--shadow);
-    }
-
-    .stat-card {
-      padding: 18px 18px 16px;
-    }
-
-    .stat-label {
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 10px;
-    }
-
-    .stat-value {
-      font-size: 30px;
-      font-weight: 700;
-      line-height: 1;
-      margin-bottom: 8px;
-    }
-
-    .stat-sub {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: 1.3fr 0.9fr;
-      gap: 18px;
-    }
-
-    .panel {
-      padding: 18px;
-      margin-bottom: 18px;
-    }
-
-    .panel-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .panel-title {
-      font-size: 18px;
-      font-weight: 700;
-    }
-
-    .panel-subtitle {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 4px;
-    }
-
-    .table-wrap {
-      overflow: auto;
-      border-radius: 16px;
-      border: 1px solid var(--line);
-      background: #fff;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    th,
-    td {
-      padding: 12px 14px;
-      font-size: 13px;
-      text-align: left;
-      border-bottom: 1px solid var(--line);
-      vertical-align: top;
-    }
-
-    th {
-      background: #fafaf7;
-      color: var(--muted);
-      font-weight: 600;
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-
-    tr:last-child td {
-      border-bottom: 0;
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 700;
-    }
-
-    .badge.accepted {
-      background: rgba(34, 197, 94, 0.12);
-      color: #15803d;
-    }
-
-    .badge.pending {
-      background: rgba(217, 169, 95, 0.18);
-      color: #9a6700;
-    }
-
-    .badge.rejected {
-      background: rgba(180, 76, 76, 0.12);
-      color: var(--danger);
-    }
-
-    .badge.group {
-      background: rgba(59, 130, 246, 0.12);
-      color: #1d4ed8;
-    }
-
-    .badge.direct {
-      background: rgba(112, 117, 123, 0.12);
-      color: #4b5563;
-    }
-
-    .list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .list-item {
-      border: 1px solid var(--line);
-      background: #fff;
-      border-radius: 16px;
-      padding: 14px 16px;
-    }
-
-    .list-item-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 6px;
-    }
-
-    .list-item-title {
-      font-weight: 600;
-      font-size: 14px;
-    }
-
-    .list-item-meta,
-    .muted {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .empty {
-      padding: 28px;
-      text-align: center;
-      color: var(--muted);
-      font-size: 13px;
-      background: #fff;
-      border: 1px dashed var(--line);
-      border-radius: 16px;
-    }
-
-    .page {
-      display: none;
-    }
-
-    .page.active {
-      display: block;
-    }
-
-    .action-link {
-      border: 0;
-      background: transparent;
-      color: #15803d;
-      cursor: pointer;
-      font: inherit;
-      font-weight: 600;
-      padding: 0;
-    }
-
-    .modal-backdrop {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(17, 24, 39, 0.35);
-      backdrop-filter: blur(4px);
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      z-index: 100;
-    }
-
-    .modal-backdrop.open {
-      display: flex;
-    }
-
-    .modal {
-      width: min(760px, 100%);
-      max-height: 85vh;
-      overflow: auto;
-      background: #fff;
-      border-radius: 24px;
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow);
-      padding: 20px;
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-
-    .modal-close {
-      border: 1px solid var(--line);
-      background: #fff;
-      border-radius: 10px;
-      width: 38px;
-      height: 38px;
-      cursor: pointer;
-      font-size: 18px;
-    }
-
-    .message {
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px 14px;
-      background: #fbfbf8;
-      margin-bottom: 10px;
-    }
-
-    .message-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 6px;
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .message-body {
-      font-size: 14px;
-      line-height: 1.55;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    @media (max-width: 1200px) {
-      .stats-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .layout {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 880px) {
-      .shell {
-        grid-template-columns: 1fr;
-      }
-
-      .sidebar {
-        position: static;
-        height: auto;
-      }
-    }
-
-    @media (max-width: 640px) {
-      .main {
-        padding: 18px;
-      }
-
-      .topbar {
-        flex-direction: column;
-      }
-
-      .stats-grid {
-        grid-template-columns: 1fr;
-      }
-    }
+    body { background-color: #f1f5f9; }
+    #map { height: 100%; min-height: 500px; z-index: 10; border-radius: 0.75rem; }
+    .marker-safe { background-color: #22c55e; border: 3px solid white; border-radius: 50%; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+    .marker-warning { background-color: #f59e0b; border: 3px solid white; border-radius: 50%; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); animation: pulse-warning 2s infinite; }
+    .marker-danger { background-color: #ef4444; border: 3px solid white; border-radius: 50%; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); animation: pulse-danger 1.5s infinite; }
+    @keyframes pulse-danger {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+      70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    @keyframes pulse-warning {
+      0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+      70% { box-shadow: 0 0 0 15px rgba(245, 158, 11, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   </style>
 </head>
-<body>
-  <div class="shell">
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-mark">
-          <div class="brand-icon">S</div>
-          <div>
-            <h1>Sabaai-Dii-Mai</h1>
-            <p>Admin dashboard สำหรับ backend ปัจจุบัน</p>
-          </div>
+<body class="text-slate-800 flex h-screen overflow-hidden">
+  <aside class="w-64 bg-white border-r border-slate-200 flex flex-col z-20 shrink-0">
+    <div class="p-6 border-b border-slate-100">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand to-emerald-400 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-brand/20">
+          S
         </div>
-        <p>เปิดดูข้อมูลจาก API จริงของระบบเดียวกับแอปมือถือ</p>
-      </div>
-
-      <nav class="nav">
-        <button class="active" data-page-target="overview">ภาพรวม</button>
-        <button data-page-target="users">ผู้ใช้</button>
-        <button data-page-target="friendships">เพื่อน</button>
-        <button data-page-target="conversations">แชต</button>
-        <button data-page-target="support">Support</button>
-        <button data-page-target="checkins">Check-ins</button>
-      </nav>
-
-      <div class="sidebar-note">
-        <div class="label">สถานะระบบ</div>
-        <div class="value" id="sidebar-health">กำลังตรวจสอบ...</div>
-      </div>
-    </aside>
-
-    <main class="main">
-      <div class="topbar">
         <div>
-          <h2>Backend Dashboard</h2>
-          <p>ดูข้อมูล users, friendships, conversations, support และ check-ins จาก backend โดยตรง</p>
+          <h1 class="font-bold text-lg leading-tight text-slate-900">Sabaai-Dii-Mai</h1>
+          <p class="text-xs text-slate-500 font-medium tracking-wide uppercase">Safety Monitor</p>
         </div>
-        <div class="actions">
-          <div class="status-pill">
-            API health: <strong id="health-pill">กำลังโหลด...</strong>
+      </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto p-4 space-y-1">
+      <button onclick="switchTab('monitor')" id="nav-monitor" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-sm font-medium transition-colors bg-brand-soft text-brand">
+        <i data-lucide="activity"></i> Live Monitor
+      </button>
+      <button onclick="switchTab('users')" id="nav-users" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-sm font-medium transition-colors text-slate-600 hover:bg-slate-50">
+        <i data-lucide="users"></i> ผู้ใช้งานทั้งหมด
+      </button>
+      <button onclick="switchTab('reports')" id="nav-reports" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-sm font-medium transition-colors text-slate-600 hover:bg-slate-50">
+        <i data-lucide="clipboard-list"></i> ประวัติ Check-ins
+      </button>
+      <button onclick="switchTab('support')" id="nav-support" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-sm font-medium transition-colors text-slate-600 hover:bg-slate-50">
+        <i data-lucide="message-square"></i> แจ้งเหตุ / แชต
+      </button>
+    </nav>
+
+    <div class="p-4 border-t border-slate-100">
+      <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+        <div class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2">สถานะระบบเชื่อมต่อ</div>
+        <div class="flex items-center gap-2">
+          <span class="relative flex h-3 w-3">
+            <span id="health-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-75"></span>
+            <span id="health-dot" class="relative inline-flex rounded-full h-3 w-3 bg-brand"></span>
+          </span>
+          <span class="text-sm font-bold text-slate-700" id="system-status-text">กำลังเชื่อมต่อ...</span>
+        </div>
+        <div class="text-xs text-slate-500 mt-2" id="system-status-meta">รอผลจาก API health</div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+    <header class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between shrink-0 gap-4">
+      <div>
+        <h2 class="text-2xl font-bold text-slate-900" id="page-title">ศูนย์บัญชาการความปลอดภัย (Live Monitor)</h2>
+        <p class="text-sm text-slate-500 mt-1" id="page-subtitle">ติดตามสถานะผู้ใช้งานจาก backend แบบเรียลไทม์</p>
+      </div>
+      <div class="flex items-center gap-4">
+        <button id="refresh-button" onclick="refreshData()" class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 font-medium text-sm transition-colors">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i> ดึงข้อมูลล่าสุด
+        </button>
+        <button onclick="announceEmergency()" class="flex items-center gap-2 px-4 py-2 bg-danger text-white rounded-lg hover:bg-red-600 font-medium text-sm transition-colors shadow-lg shadow-danger/20">
+          <i data-lucide="siren" class="w-4 h-4"></i> เปิดเหตุเร่งด่วน
+        </button>
+      </div>
+    </header>
+
+    <div class="flex-1 overflow-auto p-6">
+      <div id="tab-monitor" class="h-full flex flex-col gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 shrink-0">
+          <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <div class="text-sm text-slate-500 font-medium mb-1">กำลังปฏิบัติงาน (Active)</div>
+              <div class="text-3xl font-bold text-slate-800" id="stat-active">0</div>
+            </div>
+            <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
+              <i data-lucide="briefcase"></i>
+            </div>
           </div>
-          <button class="button secondary" id="refresh-button">รีเฟรชข้อมูล</button>
-          <button class="button primary" id="open-api-button">เปิด health endpoint</button>
+
+          <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between border-l-4 border-l-brand">
+            <div>
+              <div class="text-sm text-slate-500 font-medium mb-1">ปลอดภัย (Safe)</div>
+              <div class="text-3xl font-bold text-brand" id="stat-safe">0</div>
+            </div>
+            <div class="w-12 h-12 rounded-full bg-brand-soft flex items-center justify-center text-brand">
+              <i data-lucide="shield-check"></i>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between border-l-4 border-l-warning cursor-pointer hover:bg-orange-50 transition" onclick="filterList('warning')">
+            <div>
+              <div class="text-sm text-slate-500 font-medium mb-1">ต้องติดตาม (Warning)</div>
+              <div class="text-3xl font-bold text-warning" id="stat-warning">0</div>
+            </div>
+            <div class="w-12 h-12 rounded-full bg-warning-soft flex items-center justify-center text-warning">
+              <i data-lucide="clock-3"></i>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between border-l-4 border-l-danger cursor-pointer hover:bg-red-50 transition" onclick="filterList('danger')">
+            <div>
+              <div class="text-sm text-slate-500 font-medium mb-1">ต้องการความช่วยเหลือ (SOS)</div>
+              <div class="text-3xl font-bold text-danger" id="stat-sos">0</div>
+            </div>
+            <div class="w-12 h-12 rounded-full bg-danger-soft flex items-center justify-center text-danger">
+              <i data-lucide="alert-triangle"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex-1 flex flex-col lg:flex-row gap-6 min-h-[500px]">
+          <div class="w-full lg:w-96 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col shrink-0 overflow-hidden">
+            <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center gap-3">
+              <h3 class="font-bold text-slate-800">รายชื่อติดตามสด</h3>
+              <div class="flex gap-1 text-xs">
+                <button id="filter-all" onclick="filterList('all')" class="px-2 py-1 bg-slate-900 text-white rounded">All</button>
+                <button id="filter-warning" onclick="filterList('warning')" class="px-2 py-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300">Warning</button>
+                <button id="filter-danger" onclick="filterList('danger')" class="px-2 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200">SOS</button>
+              </div>
+            </div>
+            <div class="flex-1 overflow-y-auto p-3 space-y-3" id="live-user-list">
+              <div class="text-sm text-slate-500 p-3">กำลังโหลดข้อมูล...</div>
+            </div>
+          </div>
+
+          <div class="flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-slate-200 flex justify-between items-center gap-3 z-10 bg-white">
+              <div>
+                <div class="font-bold text-slate-800 flex items-center gap-2">
+                  <i data-lucide="map-pin" class="w-5 h-5 text-slate-500"></i> แผนที่ผู้ใช้งานล่าสุด
+                </div>
+                <div class="text-xs text-slate-500 mt-1">พิกัดบนแผนที่เป็นตำแหน่งจำลองจากข้อมูลผู้ใช้ จนกว่าจะมี GPS จริงใน backend</div>
+              </div>
+              <div class="text-xs text-slate-500">อัปเดตล่าสุด: <span id="last-update-time">-</span></div>
+            </div>
+            <div id="map" class="w-full flex-1"></div>
+          </div>
         </div>
       </div>
 
-      <section class="page active" data-page="overview">
-        <div class="stats-grid" id="stats-grid"></div>
-
-        <div class="layout">
-          <div>
-            <div class="panel">
-              <div class="panel-header">
-                <div>
-                  <div class="panel-title">ผู้ใช้ล่าสุด</div>
-                  <div class="panel-subtitle">รายการ user และจำนวนเพื่อนที่เชื่อมอยู่</div>
-                </div>
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>ชื่อ</th>
-                      <th>เบอร์โทร</th>
-                      <th>เพื่อน</th>
-                      <th>คำขอรอ</th>
-                      <th>สร้างเมื่อ</th>
-                    </tr>
-                  </thead>
-                  <tbody id="users-preview-body"></tbody>
-                </table>
-              </div>
-            </div>
-
-            <div class="panel">
-              <div class="panel-header">
-                <div>
-                  <div class="panel-title">ห้องแชตล่าสุด</div>
-                  <div class="panel-subtitle">ดูข้อความล่าสุดของแต่ละ conversation</div>
-                </div>
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>ห้อง</th>
-                      <th>ประเภท</th>
-                      <th>สมาชิก</th>
-                      <th>ข้อความ</th>
-                      <th>ล่าสุด</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody id="conversations-preview-body"></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <div class="panel">
-              <div class="panel-header">
-                <div>
-                  <div class="panel-title">Support Threads</div>
-                  <div class="panel-subtitle">ผู้ใช้ที่มีการคุยกับทีม support</div>
-                </div>
-              </div>
-              <div class="list" id="support-list"></div>
-            </div>
-
-            <div class="panel">
-              <div class="panel-header">
-                <div>
-                  <div class="panel-title">Check-ins ล่าสุด</div>
-                  <div class="panel-subtitle">สถานะการเช็กอินที่บันทึกล่าสุด</div>
-                </div>
-              </div>
-              <div class="list" id="checkins-list"></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="page" data-page="users">
-        <div class="panel">
-          <div class="panel-header">
+      <div id="tab-users" class="hidden h-full">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <div class="flex items-center justify-between gap-4 mb-4">
             <div>
-              <div class="panel-title">ผู้ใช้ทั้งหมด</div>
-              <div class="panel-subtitle">ดึงจากตาราง mobile_users พร้อมสถิติพื้นฐาน</div>
+              <h3 class="text-lg font-bold">ฐานข้อมูลผู้ใช้งาน</h3>
+              <p class="text-sm text-slate-500">ข้อมูลจริงจาก `mobile_users` พร้อมจำนวนเพื่อนและคำขอค้างอยู่</p>
             </div>
+            <div class="text-sm text-slate-500">ทั้งหมด <span class="font-bold text-slate-800" id="users-count-label">0</span> คน</div>
           </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
+          <div class="overflow-auto rounded-xl border border-slate-200">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-50 text-slate-500">
                 <tr>
-                  <th>ID</th>
-                  <th>ชื่อ</th>
-                  <th>เบอร์โทร</th>
-                  <th>เพื่อน</th>
-                  <th>คำขอที่รอรับ</th>
-                  <th>สร้างเมื่อ</th>
+                  <th class="text-left px-4 py-3 font-semibold">ID</th>
+                  <th class="text-left px-4 py-3 font-semibold">ชื่อผู้ใช้</th>
+                  <th class="text-left px-4 py-3 font-semibold">เบอร์โทร</th>
+                  <th class="text-left px-4 py-3 font-semibold">เพื่อน</th>
+                  <th class="text-left px-4 py-3 font-semibold">คำขอรอรับ</th>
+                  <th class="text-left px-4 py-3 font-semibold">สร้างเมื่อ</th>
                 </tr>
               </thead>
-              <tbody id="users-body"></tbody>
+              <tbody id="users-table-body" class="divide-y divide-slate-100">
+                <tr><td colspan="6" class="px-4 py-6 text-slate-500">กำลังโหลดข้อมูล...</td></tr>
+              </tbody>
             </table>
           </div>
         </div>
-      </section>
-
-      <section class="page" data-page="friendships">
-        <div class="panel">
-          <div class="panel-header">
-            <div>
-              <div class="panel-title">Friendships</div>
-              <div class="panel-subtitle">ดูคำขอเพื่อนที่ pending และรายการที่ accepted แล้ว</div>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>ผู้ส่ง</th>
-                  <th>ผู้รับ</th>
-                  <th>สถานะ</th>
-                  <th>สร้างเมื่อ</th>
-                </tr>
-              </thead>
-              <tbody id="friendships-body"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section class="page" data-page="conversations">
-        <div class="panel">
-          <div class="panel-header">
-            <div>
-              <div class="panel-title">Conversations</div>
-              <div class="panel-subtitle">ห้องแชตทั้งหมดในระบบ พร้อมข้อความล่าสุด</div>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>ชื่อห้อง</th>
-                  <th>ประเภท</th>
-                  <th>สมาชิก</th>
-                  <th>จำนวนข้อความ</th>
-                  <th>ข้อความล่าสุด</th>
-                  <th>ล่าสุดเมื่อ</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="conversations-body"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-header">
-            <div>
-              <div class="panel-title">ข้อความล่าสุดทั้งระบบ</div>
-              <div class="panel-subtitle">รวม recent messages จากทุก conversation</div>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>ห้อง</th>
-                  <th>ผู้ส่ง</th>
-                  <th>ข้อความ</th>
-                  <th>เวลา</th>
-                </tr>
-              </thead>
-              <tbody id="messages-body"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section class="page" data-page="support">
-        <div class="panel">
-          <div class="panel-header">
-            <div>
-              <div class="panel-title">Support Threads</div>
-              <div class="panel-subtitle">ภาพรวมของแต่ละผู้ใช้ที่มีการคุย support</div>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>User ID</th>
-                  <th>ชื่อ</th>
-                  <th>เบอร์โทร</th>
-                  <th>จำนวนข้อความ</th>
-                  <th>ล่าสุดเมื่อ</th>
-                </tr>
-              </thead>
-              <tbody id="support-body"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section class="page" data-page="checkins">
-        <div class="panel">
-          <div class="panel-header">
-            <div>
-              <div class="panel-title">Check-ins ล่าสุด</div>
-              <div class="panel-subtitle">ดูสถานะและ source ของการเช็กอินแต่ละครั้ง</div>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>ผู้ใช้</th>
-                  <th>สถานะ</th>
-                  <th>แหล่งที่มา</th>
-                  <th>เวลา</th>
-                </tr>
-              </thead>
-              <tbody id="checkins-body"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <div class="modal-backdrop" id="messages-modal">
-    <div class="modal">
-      <div class="modal-header">
-        <div>
-          <div class="panel-title" id="modal-title">ข้อความในห้องแชต</div>
-          <div class="panel-subtitle" id="modal-subtitle">กำลังโหลด...</div>
-        </div>
-        <button class="modal-close" id="modal-close" type="button">×</button>
       </div>
-      <div id="modal-content"></div>
+
+      <div id="tab-reports" class="hidden h-full space-y-6">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <div class="flex items-center justify-between gap-4 mb-4">
+            <div>
+              <h3 class="text-lg font-bold">ประวัติการ Check-ins</h3>
+              <p class="text-sm text-slate-500">รายการล่าสุดจาก backend พร้อมสถานะและแหล่งที่มา</p>
+            </div>
+            <div class="text-sm text-slate-500">วันนี้มี <span class="font-bold text-slate-800" id="today-checkins-label">0</span> รายการ</div>
+          </div>
+          <div class="overflow-auto rounded-xl border border-slate-200">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-50 text-slate-500">
+                <tr>
+                  <th class="text-left px-4 py-3 font-semibold">เวลา</th>
+                  <th class="text-left px-4 py-3 font-semibold">ผู้ใช้</th>
+                  <th class="text-left px-4 py-3 font-semibold">สถานะ</th>
+                  <th class="text-left px-4 py-3 font-semibold">Source</th>
+                </tr>
+              </thead>
+              <tbody id="checkins-table-body" class="divide-y divide-slate-100">
+                <tr><td colspan="4" class="px-4 py-6 text-slate-500">กำลังโหลดข้อมูล...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <div class="flex items-center justify-between gap-4 mb-4">
+            <div>
+              <h3 class="text-lg font-bold">ข้อความแชตล่าสุด</h3>
+              <p class="text-sm text-slate-500">ดึงจาก `chat_messages` และ `conversations` โดยตรง</p>
+            </div>
+            <div class="text-sm text-slate-500">ทั้งหมด <span class="font-bold text-slate-800" id="messages-count-label">0</span> ข้อความล่าสุด</div>
+          </div>
+          <div class="overflow-auto rounded-xl border border-slate-200">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-50 text-slate-500">
+                <tr>
+                  <th class="text-left px-4 py-3 font-semibold">เวลา</th>
+                  <th class="text-left px-4 py-3 font-semibold">ห้อง</th>
+                  <th class="text-left px-4 py-3 font-semibold">ผู้ส่ง</th>
+                  <th class="text-left px-4 py-3 font-semibold">ข้อความ</th>
+                </tr>
+              </thead>
+              <tbody id="messages-table-body" class="divide-y divide-slate-100">
+                <tr><td colspan="4" class="px-4 py-6 text-slate-500">กำลังโหลดข้อมูล...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-support" class="hidden h-full space-y-6">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <div class="flex items-center justify-between gap-4 mb-4">
+            <div>
+              <h3 class="text-lg font-bold">Support Threads</h3>
+              <p class="text-sm text-slate-500">สรุปข้อความช่วยเหลือของแต่ละผู้ใช้จาก `support_messages`</p>
+            </div>
+            <div class="text-sm text-slate-500">ทั้งหมด <span class="font-bold text-slate-800" id="support-count-label">0</span> threads</div>
+          </div>
+          <div class="overflow-auto rounded-xl border border-slate-200">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-50 text-slate-500">
+                <tr>
+                  <th class="text-left px-4 py-3 font-semibold">ผู้ใช้</th>
+                  <th class="text-left px-4 py-3 font-semibold">เบอร์โทร</th>
+                  <th class="text-left px-4 py-3 font-semibold">จำนวนข้อความ</th>
+                  <th class="text-left px-4 py-3 font-semibold">ล่าสุดเมื่อ</th>
+                  <th class="text-left px-4 py-3 font-semibold"></th>
+                </tr>
+              </thead>
+              <tbody id="support-table-body" class="divide-y divide-slate-100">
+                <tr><td colspan="5" class="px-4 py-6 text-slate-500">กำลังโหลดข้อมูล...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <div class="flex items-center justify-between gap-4 mb-4">
+            <div>
+              <h3 class="text-lg font-bold">Conversations</h3>
+              <p class="text-sm text-slate-500">เปิดดูข้อความจริงของแต่ละห้องแชตจาก backend</p>
+            </div>
+            <div class="text-sm text-slate-500">ทั้งหมด <span class="font-bold text-slate-800" id="conversations-count-label">0</span> ห้อง</div>
+          </div>
+          <div class="overflow-auto rounded-xl border border-slate-200">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-50 text-slate-500">
+                <tr>
+                  <th class="text-left px-4 py-3 font-semibold">ห้อง</th>
+                  <th class="text-left px-4 py-3 font-semibold">ประเภท</th>
+                  <th class="text-left px-4 py-3 font-semibold">สมาชิก</th>
+                  <th class="text-left px-4 py-3 font-semibold">ข้อความล่าสุด</th>
+                  <th class="text-left px-4 py-3 font-semibold"></th>
+                </tr>
+              </thead>
+              <tbody id="conversations-table-body" class="divide-y divide-slate-100">
+                <tr><td colspan="5" class="px-4 py-6 text-slate-500">กำลังโหลดข้อมูล...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="alert-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden transform scale-95 transition-all" id="modal-content-box">
+      <div class="bg-danger p-6 text-center">
+        <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 text-danger shadow-lg animate-pulse">
+          <i data-lucide="triangle-alert" class="w-8 h-8"></i>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-1">ต้องการความช่วยเหลือด่วน!</h3>
+        <p class="text-red-100 text-sm">ข้อมูลนี้มาจากสถานะล่าสุดของผู้ใช้งานใน backend</p>
+      </div>
+      <div class="p-6">
+        <div class="space-y-4 mb-6">
+          <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+            <span class="text-slate-500 text-sm">ชื่อผู้ใช้</span>
+            <strong class="text-slate-800" id="modal-user-name">-</strong>
+          </div>
+          <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+            <span class="text-slate-500 text-sm">เบอร์ติดต่อ</span>
+            <strong class="text-slate-800" id="modal-user-phone">-</strong>
+          </div>
+          <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+            <span class="text-slate-500 text-sm">สถานะล่าสุด</span>
+            <strong class="text-slate-800 text-sm" id="modal-user-status">-</strong>
+          </div>
+          <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+            <span class="text-slate-500 text-sm">พิกัดบนแผนที่</span>
+            <button type="button" onclick="focusAlertUser()" class="text-blue-600 underline text-sm cursor-pointer">
+              ดูบนแผนที่
+            </button>
+          </div>
+          <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+            <span class="text-slate-500 text-sm">หมายเหตุ</span>
+            <strong class="text-orange-500 text-sm flex items-center gap-1" id="modal-user-note"><i data-lucide="map-pinned" class="w-4 h-4"></i> พิกัดเป็นค่าจำลอง</strong>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button onclick="closeModal()" class="flex-1 px-4 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition">
+            ปิด
+          </button>
+          <button onclick="acknowledgeAlert()" class="flex-1 px-4 py-3 bg-brand text-white font-bold rounded-xl hover:bg-green-600 transition flex justify-center items-center gap-2 shadow-lg shadow-brand/30">
+            <i data-lucide="check-circle" class="w-5 h-5"></i> รับทราบแล้ว
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
+  <div id="message-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden">
+      <div class="px-6 py-5 border-b border-slate-200 flex items-start justify-between gap-4">
+        <div>
+          <h3 class="text-xl font-bold text-slate-900" id="message-modal-title">รายละเอียดข้อความ</h3>
+          <p class="text-sm text-slate-500 mt-1" id="message-modal-subtitle">กำลังโหลด...</p>
+        </div>
+        <button type="button" onclick="closeMessageModal()" class="w-10 h-10 rounded-full border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div id="message-modal-body" class="p-6 max-h-[70vh] overflow-y-auto space-y-3">
+        <div class="text-sm text-slate-500">กำลังโหลดข้อมูล...</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-6 right-6 hidden px-4 py-3 rounded-xl bg-slate-900 text-white text-sm shadow-xl z-50"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
+    lucide.createIcons();
+
+    const BANGKOK_CENTER = [13.75, 100.51];
+
     const state = {
       dashboard: null,
-      activePage: 'overview',
+      usersData: [],
+      currentFilter: 'all',
+      activeAlertUserId: null,
+      map: null,
+      markers: {},
+      acknowledgedDangerUserIds: new Set(),
+      initialAlertShown: false,
     };
 
-    const $ = (selector) => document.querySelector(selector);
-    const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
 
-    function formatDate(value) {
+    async function apiGet(path) {
+      const response = await fetch(path);
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      return response.json();
+    }
+
+    function formatDateTime(value) {
       if (!value) return '-';
       try {
         return new Date(value).toLocaleString('th-TH', {
@@ -806,278 +441,664 @@
       }
     }
 
-    function escapeHtml(value) {
-      return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
+    function formatRelativeTime(value) {
+      if (!value) return 'ยังไม่มีข้อมูล';
+
+      const diffMs = Date.now() - new Date(value).getTime();
+      if (!Number.isFinite(diffMs)) return 'ยังไม่มีข้อมูล';
+
+      const diffMinutes = Math.max(0, Math.floor(diffMs / 60000));
+      if (diffMinutes < 1) return 'เมื่อสักครู่';
+      if (diffMinutes < 60) return `${diffMinutes} นาทีที่แล้ว`;
+
+      const diffHours = Math.floor(diffMinutes / 60);
+      if (diffHours < 24) return `${diffHours} ชั่วโมงที่แล้ว`;
+
+      const diffDays = Math.floor(diffHours / 24);
+      return `${diffDays} วันที่แล้ว`;
     }
 
-    function badgeClass(status) {
-      if (status === 'accepted') return 'accepted';
-      if (status === 'pending') return 'pending';
-      if (status === 'group') return 'group';
-      if (status === 'direct') return 'direct';
-      return 'rejected';
+    function deriveLocation(userId) {
+      const latOffset = (((userId * 37) % 21) - 10) * 0.0045;
+      const lngOffset = (((userId * 53) % 21) - 10) * 0.0045;
+      return [BANGKOK_CENTER[0] + latOffset, BANGKOK_CENTER[1] + lngOffset];
     }
 
-    async function apiGet(path) {
-      const response = await fetch(path);
-      if (!response.ok) {
-        throw new Error(await response.text());
+    function statusBadge(status) {
+      if (status === 'danger') {
+        return '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs font-bold">SOS ขอความช่วยเหลือ</span>';
       }
-      return response.json();
+      if (status === 'warning') {
+        return '<span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-bold">ต้องติดตาม</span>';
+      }
+      return '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-bold">ปลอดภัย</span>';
     }
 
-    function renderStats(stats) {
-      const cards = [
-        {
-          label: 'ผู้ใช้ทั้งหมด',
-          value: stats.users_count,
-          sub: `${stats.accepted_friendships} friendship ที่ยืนยันแล้ว`,
-        },
-        {
-          label: 'คำขอเพื่อนที่รอ',
-          value: stats.pending_friendships,
-          sub: 'ต้องการการตอบรับจากผู้ใช้',
-        },
-        {
-          label: 'ห้องแชตทั้งหมด',
-          value: stats.conversations_count,
-          sub: `${stats.messages_count} ข้อความในระบบ`,
-        },
-        {
-          label: 'Check-ins วันนี้',
-          value: stats.today_checkins,
-          sub: `${stats.support_messages_count} ข้อความ support สะสม`,
-        },
-      ];
+    function monitorStatusFromCheckin(checkin, user, supportThread) {
+      const rawStatus = String(checkin?.status || '').toLowerCase();
+      const lastActivity = checkin?.created_at || supportThread?.last_message_at || user.created_at;
+      const ageMs = lastActivity ? Date.now() - new Date(lastActivity).getTime() : Number.POSITIVE_INFINITY;
 
-      $('#stats-grid').innerHTML = cards.map(card => `
-        <div class="stat-card">
-          <div class="stat-label">${escapeHtml(card.label)}</div>
-          <div class="stat-value">${escapeHtml(card.value)}</div>
-          <div class="stat-sub">${escapeHtml(card.sub)}</div>
-        </div>
-      `).join('');
+      let status = 'safe';
+
+      if (!checkin) {
+        status = 'warning';
+      } else if (/sos|emergency|danger|critical|help/.test(rawStatus)) {
+        status = 'danger';
+      } else if (/warning|miss|late|overdue|fail|failed|alert/.test(rawStatus)) {
+        status = 'warning';
+      } else if (Number.isFinite(ageMs) && ageMs > 24 * 60 * 60 * 1000) {
+        status = 'warning';
+      }
+
+      if (state.acknowledgedDangerUserIds.has(user.id) && status === 'danger') {
+        status = 'warning';
+      }
+
+      return status;
     }
 
-    function renderUsers(users) {
-      const rows = users.map(user => `
-        <tr>
-          <td>${user.id}</td>
-          <td>${escapeHtml(user.display_name)}</td>
-          <td>${escapeHtml(user.phone || '-')}</td>
-          <td>${user.friends_count}</td>
-          <td>${user.pending_requests}</td>
-          <td>${escapeHtml(formatDate(user.created_at))}</td>
-        </tr>
-      `).join('');
+    function buildMonitorUsers(dashboard) {
+      const latestCheckins = dashboard.latestCheckins || dashboard.recentCheckins || [];
+      const latestCheckinByUser = new Map(latestCheckins.map((item) => [item.user_id, item]));
+      const supportByUser = new Map((dashboard.supportThreads || []).map((item) => [item.user_id, item]));
 
-      $('#users-preview-body').innerHTML = rows || `<tr><td colspan="6"><div class="empty">ยังไม่มีผู้ใช้</div></td></tr>`;
-      $('#users-body').innerHTML = rows || `<tr><td colspan="6"><div class="empty">ยังไม่มีผู้ใช้</div></td></tr>`;
+      return (dashboard.users || [])
+        .map((user) => {
+          const latestCheckin = latestCheckinByUser.get(user.id) || null;
+          const supportThread = supportByUser.get(user.id) || null;
+          const status = monitorStatusFromCheckin(latestCheckin, user, supportThread);
+
+          return {
+            id: user.id,
+            name: user.display_name,
+            phone: user.phone || '-',
+            status,
+            location: deriveLocation(user.id),
+            lastCheckIn: latestCheckin
+              ? `${latestCheckin.status} · ${formatRelativeTime(latestCheckin.created_at)}`
+              : 'ยังไม่มี check-in',
+            lastCheckinAt: latestCheckin?.created_at || supportThread?.last_message_at || user.created_at,
+            source: latestCheckin?.source || '-',
+            supportMessagesCount: Number(supportThread?.messages_count || 0),
+            battery: null,
+          };
+        })
+        .sort((a, b) => {
+          const order = { danger: 1, warning: 2, safe: 3 };
+          const statusOrder = order[a.status] - order[b.status];
+          if (statusOrder !== 0) return statusOrder;
+          return new Date(b.lastCheckinAt || 0) - new Date(a.lastCheckinAt || 0);
+        });
     }
 
-    function renderFriendships(friendships) {
-      $('#friendships-body').innerHTML = friendships.length ? friendships.map(item => `
-        <tr>
-          <td>${item.id}</td>
-          <td>${escapeHtml(item.requester_name)}</td>
-          <td>${escapeHtml(item.addressee_name)}</td>
-          <td><span class="badge ${badgeClass(item.status)}">${escapeHtml(item.status)}</span></td>
-          <td>${escapeHtml(formatDate(item.created_at))}</td>
-        </tr>
-      `).join('') : `<tr><td colspan="5"><div class="empty">ยังไม่มี friendship</div></td></tr>`;
+    function initMap() {
+      state.map = L.map('map', { zoomControl: false }).setView(BANGKOK_CENTER, 12);
+      L.control.zoom({ position: 'bottomright' }).addTo(state.map);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors & CARTO',
+        maxZoom: 19
+      }).addTo(state.map);
     }
 
-    function renderConversations(conversations) {
-      const previewRows = conversations.slice(0, 6).map(item => `
-        <tr>
-          <td>${escapeHtml(item.name)}</td>
-          <td><span class="badge ${badgeClass(item.type)}">${escapeHtml(item.type)}</span></td>
-          <td>${item.members_count}</td>
-          <td>${item.messages_count}</td>
-          <td>${escapeHtml(formatDate(item.last_message_at || item.created_at))}</td>
-          <td><button class="action-link" data-open-conversation="${item.id}" data-conversation-name="${escapeHtml(item.name)}">ดูข้อความ</button></td>
-        </tr>
-      `).join('');
+    function renderMarkers() {
+      Object.values(state.markers).forEach((marker) => state.map.removeLayer(marker));
+      state.markers = {};
 
-      const fullRows = conversations.map(item => `
-        <tr>
-          <td>${item.id}</td>
-          <td>${escapeHtml(item.name)}</td>
-          <td><span class="badge ${badgeClass(item.type)}">${escapeHtml(item.type)}</span></td>
-          <td>${item.members_count}</td>
-          <td>${item.messages_count}</td>
-          <td>${escapeHtml(item.last_message || '-')}</td>
-          <td>${escapeHtml(formatDate(item.last_message_at || item.created_at))}</td>
-          <td><button class="action-link" data-open-conversation="${item.id}" data-conversation-name="${escapeHtml(item.name)}">เปิดดู</button></td>
-        </tr>
-      `).join('');
+      const visibleUsers = state.usersData.filter((user) => state.currentFilter === 'all' || user.status === state.currentFilter);
 
-      $('#conversations-preview-body').innerHTML = previewRows || `<tr><td colspan="6"><div class="empty">ยังไม่มีห้องแชต</div></td></tr>`;
-      $('#conversations-body').innerHTML = fullRows || `<tr><td colspan="8"><div class="empty">ยังไม่มีห้องแชต</div></td></tr>`;
-    }
+      visibleUsers.forEach((user) => {
+        const customIcon = L.divIcon({
+          className: 'custom-div-icon',
+          html: `<div class="w-4 h-4 marker-${user.status}"></div>`,
+          iconSize: [16, 16],
+          iconAnchor: [8, 8],
+        });
 
-    function renderRecentMessages(messages) {
-      $('#messages-body').innerHTML = messages.length ? messages.map(item => `
-        <tr>
-          <td>${item.id}</td>
-          <td>${escapeHtml(item.conversation_name)}</td>
-          <td>${escapeHtml(item.sender_name)}</td>
-          <td>${escapeHtml(item.content)}</td>
-          <td>${escapeHtml(formatDate(item.sent_at))}</td>
-        </tr>
-      `).join('') : `<tr><td colspan="5"><div class="empty">ยังไม่มีข้อความ</div></td></tr>`;
-    }
-
-    function renderSupport(threads) {
-      $('#support-list').innerHTML = threads.length ? threads.slice(0, 6).map(item => `
-        <div class="list-item">
-          <div class="list-item-head">
-            <div class="list-item-title">${escapeHtml(item.display_name)}</div>
-            <div class="list-item-meta">${escapeHtml(formatDate(item.last_message_at))}</div>
+        const marker = L.marker(user.location, { icon: customIcon }).addTo(state.map);
+        marker.bindPopup(`
+          <div class="font-sans">
+            <div class="font-bold text-sm mb-1">${escapeHtml(user.name)}</div>
+            <div class="mb-2">${statusBadge(user.status)}</div>
+            <div class="text-xs text-slate-500 mb-1">อัปเดตล่าสุด: ${escapeHtml(user.lastCheckIn)}</div>
+            <div class="text-xs text-slate-500 mb-2">ที่มา: ${escapeHtml(user.source)}</div>
+            <button onclick="focusUser(${user.id})" class="text-xs text-blue-600 underline">ดูรายละเอียด</button>
           </div>
-          <div class="muted">เบอร์โทร: ${escapeHtml(item.phone || '-')}</div>
-          <div class="muted">จำนวนข้อความ: ${item.messages_count}</div>
-        </div>
-      `).join('') : `<div class="empty">ยังไม่มี thread support</div>`;
+        `);
 
-      $('#support-body').innerHTML = threads.length ? threads.map(item => `
-        <tr>
-          <td>${item.user_id}</td>
-          <td>${escapeHtml(item.display_name)}</td>
-          <td>${escapeHtml(item.phone || '-')}</td>
-          <td>${item.messages_count}</td>
-          <td>${escapeHtml(formatDate(item.last_message_at))}</td>
-        </tr>
-      `).join('') : `<tr><td colspan="5"><div class="empty">ยังไม่มี thread support</div></td></tr>`;
-    }
-
-    function renderCheckins(checkins) {
-      $('#checkins-list').innerHTML = checkins.length ? checkins.slice(0, 6).map(item => `
-        <div class="list-item">
-          <div class="list-item-head">
-            <div class="list-item-title">${escapeHtml(item.display_name)}</div>
-            <div class="list-item-meta">${escapeHtml(formatDate(item.created_at))}</div>
-          </div>
-          <div class="muted">สถานะ: ${escapeHtml(item.status)}</div>
-          <div class="muted">ที่มา: ${escapeHtml(item.source || '-')}</div>
-        </div>
-      `).join('') : `<div class="empty">ยังไม่มี check-in</div>`;
-
-      $('#checkins-body').innerHTML = checkins.length ? checkins.map(item => `
-        <tr>
-          <td>${item.id}</td>
-          <td>${escapeHtml(item.display_name)}</td>
-          <td>${escapeHtml(item.status)}</td>
-          <td>${escapeHtml(item.source || '-')}</td>
-          <td>${escapeHtml(formatDate(item.created_at))}</td>
-        </tr>
-      `).join('') : `<tr><td colspan="5"><div class="empty">ยังไม่มี check-in</div></td></tr>`;
-    }
-
-    function renderDashboard(data) {
-      state.dashboard = data;
-      renderStats(data.stats);
-      renderUsers(data.users);
-      renderFriendships(data.friendships);
-      renderConversations(data.conversations);
-      renderRecentMessages(data.recentMessages);
-      renderSupport(data.supportThreads);
-      renderCheckins(data.recentCheckins);
-    }
-
-    function setPage(page) {
-      state.activePage = page;
-      $$('.page').forEach(element => {
-        element.classList.toggle('active', element.dataset.page === page);
-      });
-      $$('.nav button').forEach(button => {
-        button.classList.toggle('active', button.dataset.pageTarget === page);
+        state.markers[user.id] = marker;
       });
     }
 
-    async function refreshHealth() {
+    function renderFilterButtons() {
+      const filters = ['all', 'warning', 'danger'];
+      filters.forEach((filter) => {
+        const button = document.getElementById(`filter-${filter}`);
+        const isActive = state.currentFilter === filter;
+        button.classList.toggle('bg-slate-900', isActive && filter === 'all');
+        button.classList.toggle('text-white', isActive && filter === 'all');
+        button.classList.toggle('bg-warning', isActive && filter === 'warning');
+        button.classList.toggle('text-white', isActive && filter === 'warning');
+        button.classList.toggle('bg-danger', isActive && filter === 'danger');
+        button.classList.toggle('text-white', isActive && filter === 'danger');
+        if (!isActive) {
+          button.classList.remove('bg-slate-900', 'bg-warning', 'bg-danger', 'text-white');
+          if (filter === 'all') {
+            button.classList.add('bg-slate-200', 'text-slate-700');
+          }
+        } else if (filter !== 'all') {
+          button.classList.remove('bg-slate-200', 'text-slate-700');
+        }
+      });
+    }
+
+    function renderMonitorList() {
+      const listContainer = document.getElementById('live-user-list');
+      const visibleUsers = state.usersData.filter((user) => state.currentFilter === 'all' || user.status === state.currentFilter);
+
+      if (!visibleUsers.length) {
+        listContainer.innerHTML = '<div class="text-sm text-slate-500 p-3">ไม่พบข้อมูลในตัวกรองนี้</div>';
+        lucide.createIcons();
+        return;
+      }
+
+      listContainer.innerHTML = visibleUsers.map((user) => {
+        let statusStyles = 'border-l-4 border-brand';
+        let icon = '<div class="w-8 h-8 rounded bg-brand-soft text-brand flex items-center justify-center"><i data-lucide="shield-check" class="w-4 h-4"></i></div>';
+        let action = `<div class="text-xs text-slate-400 font-medium whitespace-nowrap">${escapeHtml(formatRelativeTime(user.lastCheckinAt))}</div>`;
+
+        if (user.status === 'warning') {
+          statusStyles = 'border-l-4 border-warning bg-orange-50';
+          icon = '<div class="w-8 h-8 rounded bg-warning-soft text-warning flex items-center justify-center"><i data-lucide="clock-3" class="w-4 h-4"></i></div>';
+          action = `<button type="button" onclick="openSupportThread(${user.id})" class="text-xs bg-white border border-slate-300 px-2 py-1 rounded hover:bg-slate-100 whitespace-nowrap">ดู thread</button>`;
+        }
+
+        if (user.status === 'danger') {
+          statusStyles = 'border-l-4 border-danger bg-red-50';
+          icon = '<div class="w-8 h-8 rounded bg-danger text-white flex items-center justify-center animate-pulse"><i data-lucide="alert-triangle" class="w-4 h-4"></i></div>';
+          action = `<button type="button" onclick="openModal(${user.id})" class="text-xs bg-danger text-white px-2 py-1 rounded shadow shadow-danger/30 hover:bg-red-600 whitespace-nowrap">ตรวจสอบ</button>`;
+        }
+
+        return `
+          <div class="bg-white border border-slate-200 rounded-lg p-3 flex items-center gap-3 shadow-sm hover:shadow-md transition cursor-pointer ${statusStyles}" onclick="focusUser(${user.id})">
+            ${icon}
+            <div class="flex-1 min-w-0">
+              <h4 class="font-bold text-sm text-slate-800 truncate">${escapeHtml(user.name)}</h4>
+              <p class="text-xs text-slate-500 truncate">${escapeHtml(user.lastCheckIn)}</p>
+            </div>
+            <div>${action}</div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function renderStats() {
+      const stats = {
+        active: state.usersData.length,
+        safe: state.usersData.filter((user) => user.status === 'safe').length,
+        warning: state.usersData.filter((user) => user.status === 'warning').length,
+        danger: state.usersData.filter((user) => user.status === 'danger').length,
+      };
+
+      document.getElementById('stat-active').innerText = stats.active;
+      document.getElementById('stat-safe').innerText = stats.safe;
+      document.getElementById('stat-warning').innerText = stats.warning;
+      document.getElementById('stat-sos').innerText = stats.danger;
+    }
+
+    function renderUsersTable() {
+      const tbody = document.getElementById('users-table-body');
+      const users = state.dashboard?.users || [];
+      document.getElementById('users-count-label').innerText = users.length;
+
+      if (!users.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-slate-500">ยังไม่มีข้อมูลผู้ใช้</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = users.map((user) => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3">${user.id}</td>
+          <td class="px-4 py-3 font-medium text-slate-800">${escapeHtml(user.display_name)}</td>
+          <td class="px-4 py-3">${escapeHtml(user.phone || '-')}</td>
+          <td class="px-4 py-3">${user.friends_count}</td>
+          <td class="px-4 py-3">${user.pending_requests}</td>
+          <td class="px-4 py-3 text-slate-500">${escapeHtml(formatDateTime(user.created_at))}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderCheckinsTable() {
+      const tbody = document.getElementById('checkins-table-body');
+      const checkins = state.dashboard?.recentCheckins || [];
+      document.getElementById('today-checkins-label').innerText = state.dashboard?.stats?.today_checkins || 0;
+
+      if (!checkins.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-6 text-slate-500">ยังไม่มีข้อมูล check-ins</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = checkins.map((item) => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 text-slate-500">${escapeHtml(formatDateTime(item.created_at))}</td>
+          <td class="px-4 py-3 font-medium text-slate-800">${escapeHtml(item.display_name)}</td>
+          <td class="px-4 py-3">${escapeHtml(item.status)}</td>
+          <td class="px-4 py-3">${escapeHtml(item.source || '-')}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderMessagesTable() {
+      const tbody = document.getElementById('messages-table-body');
+      const messages = state.dashboard?.recentMessages || [];
+      document.getElementById('messages-count-label').innerText = messages.length;
+
+      if (!messages.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-6 text-slate-500">ยังไม่มีข้อความแชต</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = messages.map((item) => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 text-slate-500">${escapeHtml(formatDateTime(item.sent_at))}</td>
+          <td class="px-4 py-3 font-medium text-slate-800">${escapeHtml(item.conversation_name)}</td>
+          <td class="px-4 py-3">${escapeHtml(item.sender_name)}</td>
+          <td class="px-4 py-3 text-slate-600">${escapeHtml(item.content)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderSupportTable() {
+      const tbody = document.getElementById('support-table-body');
+      const threads = state.dashboard?.supportThreads || [];
+      document.getElementById('support-count-label').innerText = threads.length;
+
+      if (!threads.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-slate-500">ยังไม่มี support threads</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = threads.map((item) => {
+        const disabled = Number(item.messages_count) === 0;
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="px-4 py-3 font-medium text-slate-800">${escapeHtml(item.display_name)}</td>
+            <td class="px-4 py-3">${escapeHtml(item.phone || '-')}</td>
+            <td class="px-4 py-3">${item.messages_count}</td>
+            <td class="px-4 py-3 text-slate-500">${escapeHtml(item.last_message_at ? formatDateTime(item.last_message_at) : '-')}</td>
+            <td class="px-4 py-3 text-right">
+              <button type="button" onclick="openSupportThread(${item.user_id})" class="px-3 py-1.5 rounded-lg text-xs font-medium ${disabled ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-900 text-white hover:bg-slate-800'}" ${disabled ? 'disabled' : ''}>
+                เปิดข้อความ
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderConversationsTable() {
+      const tbody = document.getElementById('conversations-table-body');
+      const conversations = state.dashboard?.conversations || [];
+      document.getElementById('conversations-count-label').innerText = conversations.length;
+
+      if (!conversations.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-slate-500">ยังไม่มีห้องแชต</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = conversations.map((item) => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 font-medium text-slate-800">${escapeHtml(item.name)}</td>
+          <td class="px-4 py-3">${escapeHtml(item.type)}</td>
+          <td class="px-4 py-3">${item.members_count}</td>
+          <td class="px-4 py-3 text-slate-600">${escapeHtml(item.last_message || '-')}</td>
+          <td class="px-4 py-3 text-right">
+            <button type="button" onclick="openConversationMessages(${item.id})" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-brand text-white hover:bg-green-600">
+              เปิดข้อความ
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderAll() {
+      renderStats();
+      renderFilterButtons();
+      renderMonitorList();
+      renderMarkers();
+      renderUsersTable();
+      renderCheckinsTable();
+      renderMessagesTable();
+      renderSupportTable();
+      renderConversationsTable();
+      lucide.createIcons();
+    }
+
+    function fitMapToVisibleUsers() {
+      const visibleUsers = state.usersData.filter((user) => state.currentFilter === 'all' || user.status === state.currentFilter);
+      if (!visibleUsers.length) {
+        state.map.setView(BANGKOK_CENTER, 12);
+        return;
+      }
+
+      if (visibleUsers.length === 1) {
+        state.map.setView(visibleUsers[0].location, 14, { animate: true });
+        return;
+      }
+
+      const group = new L.featureGroup(visibleUsers.map((user) => state.markers[user.id]).filter(Boolean));
+      if (group.getLayers().length) {
+        state.map.fitBounds(group.getBounds().pad(0.35));
+      }
+    }
+
+    function filterList(status) {
+      state.currentFilter = status;
+      renderMonitorList();
+      renderMarkers();
+      renderStats();
+      renderFilterButtons();
+      fitMapToVisibleUsers();
+    }
+
+    function focusUser(id) {
+      switchTab('monitor');
+      const user = state.usersData.find((item) => item.id === id);
+      if (user && state.markers[id]) {
+        state.map.setView(user.location, 15, { animate: true });
+        state.markers[id].openPopup();
+      }
+    }
+
+    function openModal(userId) {
+      const user = state.usersData.find((item) => item.id === userId);
+      if (!user) return;
+
+      state.activeAlertUserId = user.id;
+      document.getElementById('modal-user-name').innerText = user.name;
+      document.getElementById('modal-user-phone').innerText = user.phone || '-';
+      document.getElementById('modal-user-status').innerText = `${user.lastCheckIn} • source: ${user.source || '-'}`;
+      document.getElementById('modal-user-note').innerHTML = '<i data-lucide="map-pinned" class="w-4 h-4"></i> พิกัดเป็นค่าจำลองจาก backend';
+
+      const modal = document.getElementById('alert-modal');
+      const box = document.getElementById('modal-content-box');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      lucide.createIcons();
+
+      setTimeout(() => {
+        box.classList.remove('scale-95');
+        box.classList.add('scale-100');
+      }, 10);
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('alert-modal');
+      const box = document.getElementById('modal-content-box');
+      box.classList.remove('scale-100');
+      box.classList.add('scale-95');
+
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }, 200);
+    }
+
+    function focusAlertUser() {
+      if (state.activeAlertUserId == null) return;
+      focusUser(state.activeAlertUserId);
+      closeModal();
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.remove('hidden');
+      clearTimeout(showToast.timeoutId);
+      showToast.timeoutId = setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 2500);
+    }
+
+    function acknowledgeAlert() {
+      if (state.activeAlertUserId != null) {
+        state.acknowledgedDangerUserIds.add(state.activeAlertUserId);
+        state.usersData = buildMonitorUsers(state.dashboard);
+        renderAll();
+      }
+      closeModal();
+      showToast('รับทราบเหตุเรียบร้อยแล้ว');
+    }
+
+    function renderHealth(health) {
+      const ok = Boolean(health?.ok);
+      document.getElementById('system-status-text').textContent = ok ? 'ออนไลน์ / เชื่อมต่อแล้ว' : 'เชื่อมต่อมีปัญหา';
+      document.getElementById('system-status-meta').textContent = ok
+        ? `API health ล่าสุด ${formatDateTime(health.time)}`
+        : 'ไม่สามารถเชื่อมต่อ API health ได้';
+
+      document.getElementById('health-dot').classList.toggle('bg-brand', ok);
+      document.getElementById('health-dot').classList.toggle('bg-danger', !ok);
+      document.getElementById('health-ping').classList.toggle('bg-brand', ok);
+      document.getElementById('health-ping').classList.toggle('bg-danger', !ok);
+    }
+
+    async function openSupportThread(userId) {
+      const thread = (state.dashboard?.supportThreads || []).find((item) => item.user_id === userId);
+      const title = thread ? `Support: ${thread.display_name}` : 'Support Thread';
+
+      openMessageModal(title, 'กำลังโหลดข้อความ support...');
       try {
-        const health = await apiGet('/api/health');
-        const label = `${health.ok ? 'พร้อมใช้งาน' : 'มีปัญหา'} · ${formatDate(health.time)}`;
-        $('#sidebar-health').textContent = label;
-        $('#health-pill').textContent = 'OK';
+        const messages = await apiGet(`/api/admin/support/${userId}/messages`);
+        renderMessageModal(
+          title,
+          `${messages.length} ข้อความ`,
+          messages.map((item) => ({
+            title: item.senderType === 'support' ? 'Support' : 'ผู้ใช้',
+            body: item.content,
+            meta: item.createdAt ? formatDateTime(item.createdAt) : item.timestamp,
+            variant: item.senderType === 'support' ? 'support' : 'user',
+          }))
+        );
       } catch (error) {
-        $('#sidebar-health').textContent = 'เชื่อมต่อไม่ได้';
-        $('#health-pill').textContent = 'ERROR';
-        console.error(error);
+        renderMessageModal(title, 'โหลดไม่สำเร็จ', [{
+          title: 'Error',
+          body: error.message,
+          meta: 'กรุณาลองใหม่อีกครั้ง',
+          variant: 'danger',
+        }]);
       }
+    }
+
+    async function openConversationMessages(conversationId) {
+      const conversation = (state.dashboard?.conversations || []).find((item) => item.id === conversationId);
+      const title = conversation ? `Conversation: ${conversation.name}` : `Conversation #${conversationId}`;
+
+      openMessageModal(title, 'กำลังโหลดข้อความในห้องแชต...');
+      try {
+        const messages = await apiGet(`/api/admin/conversations/${conversationId}/messages`);
+        renderMessageModal(
+          title,
+          `${messages.length} ข้อความ`,
+          messages.map((item) => ({
+            title: item.sender_name,
+            body: item.content,
+            meta: formatDateTime(item.sent_at),
+            variant: 'chat',
+          }))
+        );
+      } catch (error) {
+        renderMessageModal(title, 'โหลดไม่สำเร็จ', [{
+          title: 'Error',
+          body: error.message,
+          meta: 'กรุณาลองใหม่อีกครั้ง',
+          variant: 'danger',
+        }]);
+      }
+    }
+
+    function openMessageModal(title, subtitle) {
+      document.getElementById('message-modal-title').textContent = title;
+      document.getElementById('message-modal-subtitle').textContent = subtitle;
+      document.getElementById('message-modal-body').innerHTML = '<div class="text-sm text-slate-500">กำลังโหลดข้อมูล...</div>';
+      const modal = document.getElementById('message-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      lucide.createIcons();
+    }
+
+    function renderMessageModal(title, subtitle, messages) {
+      document.getElementById('message-modal-title').textContent = title;
+      document.getElementById('message-modal-subtitle').textContent = subtitle;
+
+      const body = document.getElementById('message-modal-body');
+      if (!messages.length) {
+        body.innerHTML = '<div class="text-sm text-slate-500">ยังไม่มีข้อความ</div>';
+        return;
+      }
+
+      body.innerHTML = messages.map((message) => {
+        const variantClasses = {
+          support: 'bg-brand-soft border-brand/20',
+          user: 'bg-slate-50 border-slate-200',
+          chat: 'bg-white border-slate-200',
+          danger: 'bg-red-50 border-red-200',
+        };
+        return `
+          <div class="rounded-2xl border p-4 ${variantClasses[message.variant] || 'bg-white border-slate-200'}">
+            <div class="flex items-center justify-between gap-3 mb-2">
+              <div class="font-bold text-slate-800">${escapeHtml(message.title)}</div>
+              <div class="text-xs text-slate-500">${escapeHtml(message.meta)}</div>
+            </div>
+            <div class="text-sm text-slate-700 whitespace-pre-wrap break-words">${escapeHtml(message.body)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function closeMessageModal() {
+      const modal = document.getElementById('message-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function maybeOpenInitialDangerAlert() {
+      if (state.initialAlertShown) return;
+      const dangerUser = state.usersData.find((user) => user.status === 'danger');
+      if (!dangerUser) return;
+      state.initialAlertShown = true;
+      setTimeout(() => openModal(dangerUser.id), 600);
     }
 
     async function loadDashboard() {
-      $('#health-pill').textContent = 'กำลังโหลด...';
-      try {
-        const dashboard = await apiGet('/api/admin/dashboard');
-        renderDashboard(dashboard);
-        await refreshHealth();
-      } catch (error) {
-        console.error(error);
-        $('#stats-grid').innerHTML = `<div class="empty">โหลด dashboard ไม่สำเร็จ: ${escapeHtml(error.message)}</div>`;
+      const [dashboardResult, healthResult] = await Promise.allSettled([
+        apiGet('/api/admin/dashboard'),
+        apiGet('/api/health'),
+      ]);
+
+      if (dashboardResult.status === 'fulfilled') {
+        state.dashboard = dashboardResult.value;
+        state.usersData = buildMonitorUsers(state.dashboard);
+        renderAll();
+        document.getElementById('last-update-time').innerText = formatDateTime(new Date().toISOString());
+        maybeOpenInitialDangerAlert();
+      } else {
+        showToast('โหลด dashboard ไม่สำเร็จ');
+      }
+
+      if (healthResult.status === 'fulfilled') {
+        renderHealth(healthResult.value);
+      } else {
+        renderHealth({ ok: false });
       }
     }
 
-    async function openConversation(conversationId, conversationName) {
-      const modal = $('#messages-modal');
-      const modalTitle = $('#modal-title');
-      const modalSubtitle = $('#modal-subtitle');
-      const modalContent = $('#modal-content');
-
-      modalTitle.textContent = `ข้อความใน ${conversationName}`;
-      modalSubtitle.textContent = 'กำลังโหลดข้อความ...';
-      modalContent.innerHTML = '<div class="empty">กำลังโหลด...</div>';
-      modal.classList.add('open');
+    async function refreshData() {
+      const button = document.getElementById('refresh-button');
+      const originalHtml = button.innerHTML;
+      button.disabled = true;
+      button.classList.add('opacity-70', 'cursor-not-allowed');
+      button.innerHTML = '<i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i> กำลังโหลด';
+      lucide.createIcons();
 
       try {
-        const messages = await apiGet(`/api/admin/conversations/${conversationId}/messages`);
-        modalSubtitle.textContent = `${messages.length} ข้อความ`;
-        modalContent.innerHTML = messages.length ? messages.map(item => `
-          <div class="message">
-            <div class="message-head">
-              <strong>${escapeHtml(item.sender_name)}</strong>
-              <span>${escapeHtml(formatDate(item.sent_at))}</span>
-            </div>
-            <div class="message-body">${escapeHtml(item.content)}</div>
-          </div>
-        `).join('') : '<div class="empty">ห้องนี้ยังไม่มีข้อความ</div>';
-      } catch (error) {
-        modalSubtitle.textContent = 'โหลดไม่สำเร็จ';
-        modalContent.innerHTML = `<div class="empty">เกิดข้อผิดพลาด: ${escapeHtml(error.message)}</div>`;
+        await loadDashboard();
+        showToast('อัปเดตข้อมูลล่าสุดแล้ว');
+      } finally {
+        button.disabled = false;
+        button.classList.remove('opacity-70', 'cursor-not-allowed');
+        button.innerHTML = originalHtml;
+        lucide.createIcons();
       }
     }
 
-    document.addEventListener('click', (event) => {
-      const navButton = event.target.closest('[data-page-target]');
-      if (navButton) {
-        setPage(navButton.dataset.pageTarget);
+    function announceEmergency() {
+      const dangerUser = state.usersData.find((user) => user.status === 'danger');
+      if (dangerUser) {
+        openModal(dangerUser.id);
+        return;
       }
+      showToast('ยังไม่พบเหตุ SOS ในข้อมูลล่าสุด');
+    }
 
-      const openButton = event.target.closest('[data-open-conversation]');
-      if (openButton) {
-        openConversation(openButton.dataset.openConversation, openButton.dataset.conversationName);
+    function switchTab(tabId) {
+      ['monitor', 'users', 'reports', 'support'].forEach((id) => {
+        document.getElementById(`tab-${id}`).classList.add('hidden');
+        document.getElementById(`nav-${id}`).classList.remove('bg-brand-soft', 'text-brand');
+        document.getElementById(`nav-${id}`).classList.add('text-slate-600');
+      });
+
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+      document.getElementById(`nav-${tabId}`).classList.add('bg-brand-soft', 'text-brand');
+      document.getElementById(`nav-${tabId}`).classList.remove('text-slate-600');
+
+      const titles = {
+        monitor: {
+          title: 'ศูนย์บัญชาการความปลอดภัย (Live Monitor)',
+          subtitle: 'ติดตามสถานะผู้ใช้งานจาก backend พร้อมแผนที่แสดงตำแหน่งจำลอง',
+        },
+        users: {
+          title: 'จัดการผู้ใช้งาน',
+          subtitle: 'ดูข้อมูลผู้ใช้จริงจากฐานข้อมูล mobile_users',
+        },
+        reports: {
+          title: 'ประวัติและรายงาน',
+          subtitle: 'รวม check-ins และข้อความแชตล่าสุดจากระบบ',
+        },
+        support: {
+          title: 'จัดการข้อความแจ้งเหตุ',
+          subtitle: 'เปิดดู support threads และข้อความใน conversation ได้ทันที',
+        },
+      };
+
+      document.getElementById('page-title').innerText = titles[tabId].title;
+      document.getElementById('page-subtitle').innerText = titles[tabId].subtitle;
+
+      if (tabId === 'monitor' && state.map) {
+        setTimeout(() => state.map.invalidateSize(), 100);
+      }
+    }
+
+    document.getElementById('message-modal').addEventListener('click', (event) => {
+      if (event.target.id === 'message-modal') {
+        closeMessageModal();
       }
     });
 
-    $('#refresh-button').addEventListener('click', loadDashboard);
-    $('#open-api-button').addEventListener('click', () => {
-      window.open('/api/health', '_blank');
-    });
-    $('#modal-close').addEventListener('click', () => $('#messages-modal').classList.remove('open'));
-    $('#messages-modal').addEventListener('click', (event) => {
-      if (event.target.id === 'messages-modal') {
-        $('#messages-modal').classList.remove('open');
+    document.getElementById('alert-modal').addEventListener('click', (event) => {
+      if (event.target.id === 'alert-modal') {
+        closeModal();
       }
     });
 
-    loadDashboard();
+    window.addEventListener('load', async () => {
+      initMap();
+      await loadDashboard();
+      setInterval(loadDashboard, 30000);
+    });
   </script>
 </body>
 </html>

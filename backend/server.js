@@ -450,6 +450,28 @@ function getAdminRecentCheckins(limit = 20) {
   `).all(limit);
 }
 
+function getAdminLatestCheckins() {
+  return db.prepare(`
+    SELECT
+      c.id,
+      c.user_id,
+      c.status,
+      c.source,
+      c.created_at,
+      mu.display_name
+    FROM checkins c
+    JOIN mobile_users mu ON mu.id = c.user_id
+    WHERE c.id = (
+      SELECT c2.id
+      FROM checkins c2
+      WHERE c2.user_id = c.user_id
+      ORDER BY datetime(c2.created_at) DESC, c2.id DESC
+      LIMIT 1
+    )
+    ORDER BY datetime(c.created_at) DESC, c.id DESC
+  `).all();
+}
+
 function getAdminSupportThreads() {
   return db.prepare(`
     SELECT
@@ -510,6 +532,7 @@ function getAdminDashboard() {
     conversations: getAdminConversations(),
     recentMessages: getAdminRecentMessages(),
     recentCheckins: getAdminRecentCheckins(),
+    latestCheckins: getAdminLatestCheckins(),
     supportThreads: getAdminSupportThreads(),
   };
 }
@@ -545,6 +568,21 @@ app.get('/api/admin/conversations/:conversationId/messages', (req, res) => {
     return res.json(getAdminConversationMessages(conversationId));
   } catch (err) {
     return res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/admin/support/:userId/messages', (req, res) => {
+  try {
+    const userId = Number(req.params.userId);
+
+    if (!userId) {
+      return res.status(400).json({ message: 'userId is required' });
+    }
+
+    ensureMobileUserExists(userId);
+    return res.json(getSupportMessagesForUser(userId));
+  } catch (err) {
+    return res.status(err.status || 500).json({ message: err.message });
   }
 });
 
