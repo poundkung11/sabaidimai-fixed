@@ -2,14 +2,18 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Home, Users, Circle, Settings } from 'lucide-react-native';
+import { Home, Users, Circle, Settings, UserCheck } from 'lucide-react-native';
 
 import { HomeScreen } from '../screens/HomeScreen';
 import { CommunityScreen } from '../screens/CommunityScreen';
 import { CircleScreen } from '../screens/CircleScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { FriendsScreen } from '../screens/FriendsScreen';
+import { FriendSearchScreen } from '../screens/FriendSearchScreen';
+import { DirectChatScreen } from '../screens/DirectChatScreen';
+
 import { SOSScreen } from '../screens/SOSScreen';
 import { HelpOnTheWayScreen } from '../screens/HelpOnTheWayScreen';
 import { SOSActiveScreen } from '../screens/SOSActiveScreen';
@@ -38,6 +42,7 @@ import { EmergencyCardConfirmationScreen } from '../screens/emergency-card/Emerg
 
 import { colors } from '../theme/colors';
 import { fonts } from '../theme/fonts';
+import { useApp } from '../context/AppContext';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -64,11 +69,14 @@ function MainTabs() {
           tabBarIcon: ({ focused }) => (
             <View style={styles.tabItem}>
               <Home size={22} color={focused ? colors.primary : colors.mutedForeground} />
-              <Text style={[styles.tabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>ความปลอดภัย</Text>
+              <Text style={[styles.tabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>
+                ความปลอดภัย
+              </Text>
             </View>
           ),
         }}
       />
+
       <Tab.Screen
         name="Community"
         component={CommunityScreen}
@@ -76,7 +84,9 @@ function MainTabs() {
           tabBarIcon: ({ focused }) => (
             <View style={styles.tabItem}>
               <Users size={22} color={focused ? colors.primary : colors.mutedForeground} />
-              <Text style={[styles.tabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>ชุมชน</Text>
+              <Text style={[styles.tabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>
+                ชุมชน
+              </Text>
             </View>
           ),
           headerShown: true,
@@ -91,6 +101,22 @@ function MainTabs() {
           ),
         }}
       />
+
+      <Tab.Screen
+        name="Friends"
+        component={FriendsScreen}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <View style={styles.tabItem}>
+              <UserCheck size={22} color={focused ? colors.primary : colors.mutedForeground} />
+              <Text style={[styles.tabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>
+                เพื่อน
+              </Text>
+            </View>
+          ),
+        }}
+      />
+
       <Tab.Screen
         name="Circle"
         component={CircleScreen}
@@ -98,11 +124,14 @@ function MainTabs() {
           tabBarIcon: ({ focused }) => (
             <View style={styles.tabItem}>
               <Circle size={22} color={focused ? colors.primary : colors.mutedForeground} />
-              <Text style={[styles.tabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>เบอร์ฉุกเฉิน</Text>
+              <Text style={[styles.tabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>
+                เบอร์ฉุกเฉิน
+              </Text>
             </View>
           ),
         }}
       />
+
       <Tab.Screen
         name="Settings"
         component={SettingsScreen}
@@ -110,7 +139,9 @@ function MainTabs() {
           tabBarIcon: ({ focused }) => (
             <View style={styles.tabItem}>
               <Settings size={22} color={focused ? colors.primary : colors.mutedForeground} />
-              <Text style={[styles.tabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>การตั้งค่า</Text>
+              <Text style={[styles.tabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>
+                การตั้งค่า
+              </Text>
             </View>
           ),
         }}
@@ -119,59 +150,89 @@ function MainTabs() {
   );
 }
 
+function AppStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="MainTabs" component={MainTabs} />
+
+      <Stack.Screen name="FriendSearch" component={FriendSearchScreen} />
+      <Stack.Screen name="DirectChat" component={DirectChatScreen} />
+
+      <Stack.Screen name="SOS" component={SOSScreen} />
+      <Stack.Screen name="HelpOnTheWay" component={HelpOnTheWayScreen} />
+      <Stack.Screen name="SOSActive" component={SOSActiveScreen} />
+      <Stack.Screen name="SOSCancel" component={SOSCancelScreen} />
+
+      <Stack.Screen name="Demo" component={DemoScreen} />
+      <Stack.Screen name="QuickAdjust" component={QuickAdjustScreen} />
+      <Stack.Screen name="ContactSupport" component={ContactSupportScreen} />
+      <Stack.Screen name="ChatRooms" component={ChatRoomsScreen} />
+      <Stack.Screen name="ChatRoom" component={ChatRoomScreen} />
+      <Stack.Screen name="SupportChat" component={SupportChatScreen} />
+
+      <Stack.Screen name="EmergencyCardIntro" component={EmergencyCardIntroScreen} />
+      <Stack.Screen name="EmergencyCardForm" component={EmergencyCardFormScreen} />
+      <Stack.Screen name="EmergencyCardConfirmation" component={EmergencyCardConfirmationScreen} />
+
+      <Stack.Screen name="OnboardingWelcome" component={WelcomeScreen} />
+      <Stack.Screen name="OnboardingSetupFor" component={SetupForScreen} />
+      <Stack.Screen name="OnboardingSleepPattern" component={SleepPatternScreen} />
+      <Stack.Screen name="OnboardingSafeWindows" component={SafeWindowsScreen} />
+      <Stack.Screen name="OnboardingCheckInTime" component={CheckInTimeScreen} />
+      <Stack.Screen name="OnboardingGracePeriod" component={GracePeriodScreen} />
+      <Stack.Screen name="OnboardingPrimaryContact" component={PrimaryContactScreen} />
+      <Stack.Screen name="OnboardingPermissions" component={PermissionsScreen} />
+      <Stack.Screen name="OnboardingBatteryAlert" component={BatteryAlertScreen} />
+      <Stack.Screen name="OnboardingSummary" component={SummaryScreen} />
+    </Stack.Navigator>
+  );
+}
+
+function AuthStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Demo" component={DemoScreen} />
+    </Stack.Navigator>
+  );
+}
+
 export function AppNavigator() {
+  const { isHydrated, isLoggedIn } = useApp();
+
+  if (!isHydrated) {
+    return (
+      <SafeAreaProvider>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaProvider>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {/* Main */}
-          <Stack.Screen name="MainTabs" component={MainTabs} />
-
-          {/* SOS flow */}
-          <Stack.Screen name="SOS" component={SOSScreen} />
-          <Stack.Screen name="HelpOnTheWay" component={HelpOnTheWayScreen} />
-          <Stack.Screen name="SOSActive" component={SOSActiveScreen} />
-          <Stack.Screen name="SOSCancel" component={SOSCancelScreen} />
-
-          {/* Settings sub-screens */}
-          <Stack.Screen name="Demo" component={DemoScreen} />
-          <Stack.Screen name="QuickAdjust" component={QuickAdjustScreen} />
-          <Stack.Screen name="ContactSupport" component={ContactSupportScreen} />
-          <Stack.Screen name="ChatRooms" component={ChatRoomsScreen} />
-          <Stack.Screen name="ChatRoom" component={ChatRoomScreen} />
-          <Stack.Screen name="SupportChat" component={SupportChatScreen} />
-
-          {/* Emergency Card */}
-          <Stack.Screen name="EmergencyCardIntro" component={EmergencyCardIntroScreen} />
-          <Stack.Screen name="EmergencyCardForm" component={EmergencyCardFormScreen} />
-          <Stack.Screen name="EmergencyCardConfirmation" component={EmergencyCardConfirmationScreen} />
-
-          {/* Onboarding */}
-          <Stack.Screen name="OnboardingWelcome" component={WelcomeScreen} />
-          <Stack.Screen name="OnboardingSetupFor" component={SetupForScreen} />
-          <Stack.Screen name="OnboardingSleepPattern" component={SleepPatternScreen} />
-          <Stack.Screen name="OnboardingSafeWindows" component={SafeWindowsScreen} />
-          <Stack.Screen name="OnboardingCheckInTime" component={CheckInTimeScreen} />
-          <Stack.Screen name="OnboardingGracePeriod" component={GracePeriodScreen} />
-          <Stack.Screen name="OnboardingPrimaryContact" component={PrimaryContactScreen} />
-          <Stack.Screen name="OnboardingPermissions" component={PermissionsScreen} />
-          <Stack.Screen name="OnboardingBatteryAlert" component={BatteryAlertScreen} />
-          <Stack.Screen name="OnboardingSummary" component={SummaryScreen} />
-        </Stack.Navigator>
+        {isLoggedIn ? <AppStack /> : <AuthStack />}
       </NavigationContainer>
     </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tabItem: {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
-    width: 72,
+    width: 64,
   },
   tabLabel: {
-    fontSize: 10,
+    fontSize: 9,
     textAlign: 'center',
     fontFamily: fonts.regular,
     flexShrink: 1,

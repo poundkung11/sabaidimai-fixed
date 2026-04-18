@@ -1,7 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState, ReactNode } from 'react';
 
-export type UserStatus = 'normal' | 'pending' | 'grace' | 'pre-alert' | 'escalated' | 'paused' | 'sos-active' | 'resolved';
+export type UserStatus =
+  | 'normal'
+  | 'pending'
+  | 'grace'
+  | 'pre-alert'
+  | 'escalated'
+  | 'paused'
+  | 'sos-active'
+  | 'resolved';
+
 export type PrimaryStatus = 'notified' | 'acknowledged' | 'checking' | 'timeout';
 export type SleepPattern = 'early' | 'late' | 'irregular';
 export type AgeGroup = 'young-adult' | 'adult' | 'senior';
@@ -53,6 +62,12 @@ interface AppState {
 interface AppContextType {
   state: AppState;
   isHydrated: boolean;
+
+  isLoggedIn: boolean;
+  currentUserId: number | null;
+  login: (userId?: number) => Promise<void>;
+  logout: () => Promise<void>;
+
   updateUserStatus: (status: UserStatus) => void;
   updatePrimaryStatus: (status: PrimaryStatus | null) => void;
   updateSettings: (settings: Partial<AppSettings>) => void;
@@ -68,6 +83,9 @@ interface AppContextType {
 }
 
 const STORAGE_KEY = 'sabaai-dii-mai-app-state';
+const AUTH_STORAGE_KEY = 'sabaai-dii-mai-auth';
+const CHAT_TOKEN_KEY = '@chat_token';
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const defaultSettings: AppSettings = {
@@ -127,7 +145,9 @@ function getDerivedStatus(state: AppState, now: Date): Partial<AppState> | null 
   }
 
   if (state.sosActive || state.userStatus === 'sos-active') {
-    return state.userStatus === 'sos-active' && state.sosActive ? null : { userStatus: 'sos-active', sosActive: true };
+    return state.userStatus === 'sos-active' && state.sosActive
+      ? null
+      : { userStatus: 'sos-active', sosActive: true };
   }
 
   if (state.pausedUntil) {
@@ -187,6 +207,8 @@ function getDerivedStatus(state: AppState, now: Date): Partial<AppState> | null 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(defaultState);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const hydratedRef = useRef(false);
 
   useEffect(() => {
@@ -194,9 +216,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const loadState = async () => {
       try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        if (raw && isMounted) {
-          const parsed = JSON.parse(raw) as AppState;
+        const [rawState, rawAuth] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEY),
+          AsyncStorage.getItem(AUTH_STORAGE_KEY),
+        ]);
+
+        if (!isMounted) return;
+
+        if (rawState) {
+          const parsed = JSON.parse(rawState) as AppState;
           setState({
             ...defaultState,
             ...parsed,
@@ -211,6 +239,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
             },
           });
         }
+
+        if (rawAuth) {
+          const parsedAuth = JSON.parse(rawAuth) as {
+            isLoggedIn?: boolean;
+            currentUserId?: number | null;
+          };
+
+          setIsLoggedIn(Boolean(parsedAuth?.isLoggedIn));
+          setCurrentUserId(parsedAuth?.currentUserId ?? null);
+        } else {
+          // ค่าเริ่มต้นสำหรับ demo app
+          setIsLoggedIn(true);
+          setCurrentUserId(1);
+        }
       } catch (error) {
         console.warn('Failed to restore saved state', error);
       } finally {
@@ -222,6 +264,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
 
     void loadState();
+
     return () => {
       isMounted = false;
     };
@@ -248,7 +291,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [state]);
 
   useEffect(() => {
-    if (!isHydrated) return;
+    if (!hydratedRef.current) return;
+
+    const saveAuthState = async () => {
+      try {
+        await AsyncStorage.setItem(
+          AUTH_STORAGE_KEY,
+          JSON.stringify({
+            isLoggedIn,
+            currentUserId,
+          }),
+        );
+      } catch (error) {
+        console.warn('Failed to persist auth state', error);
+      }
+    };
+
+    void saveAuthState();
+  }, [isLoggedIn, currentUserId]);
+
+  useEffect(() => {
+    if (!isHydrated || !isLoggedIn) return;
 
     const syncStatus = () => {
       setState(prev => {
@@ -260,7 +323,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     syncStatus();
     const interval = setInterval(syncStatus, 30_000);
     return () => clearInterval(interval);
-  }, [isHydrated]);
+  }, [isHydrated, isLoggedIn]);
+
+  const login = async (userId = 1) => {
+    setCurrentUserId(userId);
+    setIsLoggedIn(true);
+  };
+
+  const logout = async () => {
+    try {
+      await AsyncStorage.removeItem(CHAT_TOKEN_KEY);
+    } catch (error) {
+      console.warn('Failed to clear chat token', error);
+    }
+
+    setIsLoggedIn(false);
+    setCurrentUserId(null);
+  };
 
   const updateUserStatus = (status: UserStatus) => {
     setState(prev => ({ ...prev, userStatus: status }));
@@ -356,6 +435,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     () => ({
       state,
       isHydrated,
+
+      isLoggedIn,
+      currentUserId,
+      login,
+      logout,
+
       updateUserStatus,
       updatePrimaryStatus,
       updateSettings,
@@ -369,7 +454,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       resetExtended,
       markCheckIn,
     }),
-    [state, isHydrated],
+    [state, isHydrated, isLoggedIn, currentUserId],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
