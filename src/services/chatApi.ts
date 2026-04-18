@@ -3,9 +3,20 @@
  * ใช้คู่กับ chatRoutes.js บน backend
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
-const WS_URL   = process.env.EXPO_PUBLIC_WS_URL  || 'ws://localhost:3001';
+const configuredApiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
+const configuredApiRoot = process.env.EXPO_PUBLIC_API_URL?.trim();
+const configuredWsUrl = process.env.EXPO_PUBLIC_WS_URL?.trim();
+const defaultApiOrigin = Platform.OS === 'android' ? 'http://10.0.2.2:3001' : 'http://localhost:3001';
+const apiOrigin =
+  configuredApiRoot
+  || (configuredApiBaseUrl ? configuredApiBaseUrl.replace(/\/api\/app\/?$/, '') : '')
+  || defaultApiOrigin;
+
+const BASE_URL = apiOrigin;
+const WS_URL = configuredWsUrl
+  || apiOrigin.replace(/^http:\/\//, 'ws://').replace(/^https:\/\//, 'wss://');
 
 // ─────────────────────────────────────────────────────────
 // Types

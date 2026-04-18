@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState, ReactNode } from 'react';
+import { createCheckIn } from '../services/api';
 
 export type UserStatus =
   | 'normal'
@@ -211,6 +212,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const hydratedRef = useRef(false);
 
+  const syncCheckInStatus = async (status: string) => {
+    const userId = currentUserId ?? 1;
+    try {
+      await createCheckIn(status, userId);
+    } catch (error) {
+      console.warn(`Failed to sync check-in status "${status}"`, error);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -400,6 +410,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       sosActive: true,
       userStatus: 'sos-active',
     }));
+    void syncCheckInStatus('sos-active');
   };
 
   const deactivateSOS = () => {
@@ -408,6 +419,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       sosActive: false,
       userStatus: 'resolved',
     }));
+    void syncCheckInStatus('resolved');
   };
 
   const useExtended = () => {

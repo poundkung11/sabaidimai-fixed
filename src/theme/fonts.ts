@@ -1,20 +1,30 @@
-import { useFonts } from 'expo-font';
-import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-} from '@expo-google-fonts/inter';
+import { Platform } from 'react-native';
+
+const regularFont =
+  Platform.select({
+    ios: 'System',
+    android: 'sans-serif',
+    default: 'sans-serif',
+  }) ?? 'sans-serif';
+
+const mediumFont =
+  Platform.select({
+    ios: 'System',
+    android: 'sans-serif-medium',
+    default: 'sans-serif',
+  }) ?? regularFont;
 
 export function useInterFonts() {
-  return useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-  });
+  return [true] as const;
 }
 
 export const fonts = {
-  regular: 'Inter_400Regular',
-  medium: 'Inter_500Medium',
-  semiBold: 'Inter_600SemiBold',
+  regular: regularFont,
+  medium: mediumFont,
+  semiBold: mediumFont,
+  input: Platform.select({
+    ios: undefined,
+    android: regularFont,
+    default: regularFont,
+  }),
 };

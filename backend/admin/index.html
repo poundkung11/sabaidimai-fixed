@@ -105,8 +105,8 @@
   <main class="flex-1 flex flex-col h-full overflow-hidden relative">
     <header class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between shrink-0 gap-4">
       <div>
-        <h2 class="text-2xl font-bold text-slate-900" id="page-title">ศูนย์บัญชาการความปลอดภัย (Live Monitor)</h2>
-        <p class="text-sm text-slate-500 mt-1" id="page-subtitle">ติดตามสถานะผู้ใช้งานจาก backend แบบเรียลไทม์</p>
+        <h2 class="text-2xl font-bold text-slate-900" id="page-title">Dashboard Admin
+        <p class="text-sm text-slate-500 mt-1" id="page-subtitle"></p>
       </div>
       <div class="flex items-center gap-4">
         <button id="refresh-button" onclick="refreshData()" class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 font-medium text-sm transition-colors">
@@ -422,19 +422,21 @@
     lucide.createIcons();
 
     const BANGKOK_CENTER = [13.75, 100.51];
+    const DASHBOARD_POLL_MS = 5000;
 
     const state = {
       dashboard: null,
       usersData: [],
       currentFilter: 'all',
       activeAlertUserId: null,
+      activeAlertEventKey: null,
       activeSupportUserId: null,
       activeSupportThreadTitle: '',
       messageModalMode: null,
       map: null,
       markers: {},
-      acknowledgedDangerUserIds: new Set(),
-      initialAlertShown: false,
+      seenDangerEventKeys: new Set(),
+      acknowledgedDangerEventKeys: new Set(),
     };
 
     function escapeHtml(value) {
@@ -513,10 +515,20 @@
       return '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-bold">ปลอดภัย</span>';
     }
 
+    function getDangerEventKey(checkin, user) {
+      const rawStatus = String(checkin?.status || '').toLowerCase();
+      if (!checkin || !/sos|emergency|danger|critical|help/.test(rawStatus)) {
+        return null;
+      }
+
+      return `checkin:${checkin.id}:user:${user.id}`;
+    }
+
     function monitorStatusFromCheckin(checkin, user, supportThread) {
       const rawStatus = String(checkin?.status || '').toLowerCase();
       const lastActivity = checkin?.created_at || supportThread?.last_message_at || user.created_at;
       const ageMs = lastActivity ? Date.now() - new Date(lastActivity).getTime() : Number.POSITIVE_INFINITY;
+      const dangerEventKey = getDangerEventKey(checkin, user);
 
       let status = 'safe';
 
@@ -530,11 +542,11 @@
         status = 'warning';
       }
 
-      if (state.acknowledgedDangerUserIds.has(user.id) && status === 'danger') {
+      if (dangerEventKey && state.acknowledgedDangerEventKeys.has(dangerEventKey) && status === 'danger') {
         status = 'warning';
       }
 
-      return status;
+      return { status, dangerEventKey };
     }
 
     function buildMonitorUsers(dashboard) {
@@ -546,13 +558,14 @@
         .map((user) => {
           const latestCheckin = latestCheckinByUser.get(user.id) || null;
           const supportThread = supportByUser.get(user.id) || null;
-          const status = monitorStatusFromCheckin(latestCheckin, user, supportThread);
+          const { status, dangerEventKey } = monitorStatusFromCheckin(latestCheckin, user, supportThread);
 
           return {
             id: user.id,
             name: user.display_name,
             phone: user.phone || '-',
             status,
+            alertEventKey: dangerEventKey,
             location: deriveLocation(user.id),
             lastCheckIn: latestCheckin
               ? `${latestCheckin.status} · ${formatRelativeTime(latestCheckin.created_at)}`
@@ -857,6 +870,10 @@
       if (!user) return;
 
       state.activeAlertUserId = user.id;
+      state.activeAlertEventKey = user.alertEventKey || null;
+      if (user.alertEventKey) {
+        state.seenDangerEventKeys.add(user.alertEventKey);
+      }
       document.getElementById('modal-user-name').innerText = user.name;
       document.getElementById('modal-user-phone').innerText = user.phone || '-';
       document.getElementById('modal-user-status').innerText = `${user.lastCheckIn} • source: ${user.source || '-'}`;
@@ -879,6 +896,8 @@
       const box = document.getElementById('modal-content-box');
       box.classList.remove('scale-100');
       box.classList.add('scale-95');
+      state.activeAlertUserId = null;
+      state.activeAlertEventKey = null;
 
       setTimeout(() => {
         modal.classList.add('hidden');
@@ -903,8 +922,11 @@
     }
 
     function acknowledgeAlert() {
+      if (state.activeAlertEventKey) {
+        state.acknowledgedDangerEventKeys.add(state.activeAlertEventKey);
+      }
+
       if (state.activeAlertUserId != null) {
-        state.acknowledgedDangerUserIds.add(state.activeAlertUserId);
         state.usersData = buildMonitorUsers(state.dashboard);
         renderAll();
       }
@@ -1089,12 +1111,18 @@
       }
     }
 
-    function maybeOpenInitialDangerAlert() {
-      if (state.initialAlertShown) return;
-      const dangerUser = state.usersData.find((user) => user.status === 'danger');
+    function maybeOpenNextDangerAlert() {
+      const modal = document.getElementById('alert-modal');
+      if (modal.classList.contains('flex')) return;
+
+      const dangerUser = state.usersData.find((user) => (
+        user.status === 'danger' &&
+        user.alertEventKey &&
+        !state.seenDangerEventKeys.has(user.alertEventKey)
+      ));
+
       if (!dangerUser) return;
-      state.initialAlertShown = true;
-      setTimeout(() => openModal(dangerUser.id), 600);
+      openModal(dangerUser.id);
     }
 
     async function loadDashboard() {
@@ -1108,7 +1136,7 @@
         state.usersData = buildMonitorUsers(state.dashboard);
         renderAll();
         document.getElementById('last-update-time').innerText = formatDateTime(new Date().toISOString());
-        maybeOpenInitialDangerAlert();
+        maybeOpenNextDangerAlert();
       } else {
         showToast('โหลด dashboard ไม่สำเร็จ');
       }
@@ -1161,8 +1189,8 @@
 
       const titles = {
         monitor: {
-          title: 'ศูนย์บัญชาการความปลอดภัย (Live Monitor)',
-          subtitle: 'ติดตามสถานะผู้ใช้งานจาก backend พร้อมแผนที่แสดงตำแหน่งจำลอง',
+          title: 'Dshboard Admin',
+          subtitle: '',
         },
         users: {
           title: 'จัดการผู้ใช้งาน',
@@ -1201,7 +1229,7 @@
     window.addEventListener('load', async () => {
       initMap();
       await loadDashboard();
-      setInterval(loadDashboard, 30000);
+      setInterval(loadDashboard, DASHBOARD_POLL_MS);
     });
   </script>
 </body>

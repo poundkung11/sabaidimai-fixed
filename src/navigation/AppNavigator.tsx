@@ -12,7 +12,7 @@ import { CircleScreen } from '../screens/CircleScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { FriendsScreen } from '../screens/FriendsScreen';
 import { FriendSearchScreen } from '../screens/FriendSearchScreen';
-import { DirectChatScreen } from '../screens/DirectChatScreen';
+import { FriendDirectChatScreen } from '../screens/FriendDirectChatScreen';
 
 import { SOSScreen } from '../screens/SOSScreen';
 import { HelpOnTheWayScreen } from '../screens/HelpOnTheWayScreen';
@@ -156,7 +156,9 @@ function AppStack() {
       <Stack.Screen name="MainTabs" component={MainTabs} />
 
       <Stack.Screen name="FriendSearch" component={FriendSearchScreen} />
-      <Stack.Screen name="DirectChat" component={DirectChatScreen} />
+      <Stack.Screen name="SearchUser" component={FriendSearchScreen} />
+      <Stack.Screen name="FriendRequests" component={FriendsScreen} />
+      <Stack.Screen name="DirectChat" component={FriendDirectChatScreen} />
 
       <Stack.Screen name="SOS" component={SOSScreen} />
       <Stack.Screen name="HelpOnTheWay" component={HelpOnTheWayScreen} />

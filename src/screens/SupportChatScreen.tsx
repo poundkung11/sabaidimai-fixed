@@ -13,7 +13,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, Send } from 'lucide-react-native';
 import { useApp } from '../context/AppContext';
-import { getSupportMessages, sendSupportMessage, SupportMessage } from '../services/api';
+import { getSupportMessages, sendSupportMessage, type SupportMessage } from '../services/api';
 import { colors } from '../theme/colors';
 import { fonts } from '../theme/fonts';
 
@@ -32,28 +32,38 @@ export function SupportChatScreen() {
 
   useEffect(() => {
     return () => {
-      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+      if (scrollTimerRef.current) {
+        clearTimeout(scrollTimerRef.current);
+      }
     };
   }, []);
 
   const scrollToBottom = () => {
-    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    if (scrollTimerRef.current) {
+      clearTimeout(scrollTimerRef.current);
+    }
+
     scrollTimerRef.current = setTimeout(() => {
       scrollRef.current?.scrollToEnd({ animated: true });
     }, 100);
   };
 
   const loadMessages = async ({ silent = false }: { silent?: boolean } = {}) => {
-    if (!silent) setIsLoading(true);
+    if (!silent) {
+      setIsLoading(true);
+    }
+
     try {
       const data = await getSupportMessages(userId);
       setMessages(data);
       setError(null);
       scrollToBottom();
-    } catch (e: any) {
-      setError(e.message || 'โหลดข้อความไม่สำเร็จ');
+    } catch (loadError: any) {
+      setError(loadError?.message || 'โหลดข้อความไม่สำเร็จ');
     } finally {
-      if (!silent) setIsLoading(false);
+      if (!silent) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -75,7 +85,9 @@ export function SupportChatScreen() {
 
   const handleSend = async () => {
     const content = newMessage.trim();
-    if (!content || isSending) return;
+    if (!content || isSending) {
+      return;
+    }
 
     try {
       setIsSending(true);
@@ -84,8 +96,8 @@ export function SupportChatScreen() {
       setMessages(data);
       setError(null);
       scrollToBottom();
-    } catch (e: any) {
-      setError(e.message || 'ส่งข้อความไม่สำเร็จ');
+    } catch (sendError: any) {
+      setError(sendError?.message || 'ส่งข้อความไม่สำเร็จ');
       setNewMessage(content);
     } finally {
       setIsSending(false);
@@ -93,7 +105,10 @@ export function SupportChatScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.navigate('ContactSupport')}>
           <ArrowLeft size={20} color={colors.mutedForeground} />
@@ -123,16 +138,20 @@ export function SupportChatScreen() {
         </View>
       ) : (
         <ScrollView ref={scrollRef} style={styles.messages} contentContainerStyle={styles.messagesInner}>
-          {messages.map((msg) => (
-            <View key={msg.id} style={[styles.msgRow, msg.isOwn && styles.msgRowOwn]}>
-              {!msg.isOwn && (
+          {messages.map((message) => (
+            <View key={message.id} style={[styles.msgRow, message.isOwn && styles.msgRowOwn]}>
+              {!message.isOwn && (
                 <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
                   <Text style={styles.avatarText}>S</Text>
                 </View>
               )}
-              <View style={[styles.bubble, msg.isOwn && styles.bubbleOwn]}>
-                <Text style={[styles.bubbleText, msg.isOwn && styles.bubbleTextOwn]}>{msg.content}</Text>
-                <Text style={[styles.bubbleTime, msg.isOwn && styles.bubbleTimeOwn]}>{msg.timestamp}</Text>
+              <View style={[styles.bubble, message.isOwn && styles.bubbleOwn]}>
+                <Text style={[styles.bubbleText, message.isOwn && styles.bubbleTextOwn]}>
+                  {message.content}
+                </Text>
+                <Text style={[styles.bubbleTime, message.isOwn && styles.bubbleTimeOwn]}>
+                  {message.timestamp}
+                </Text>
               </View>
             </View>
           ))}
@@ -146,7 +165,9 @@ export function SupportChatScreen() {
           placeholder="พิมพ์ข้อความ..."
           placeholderTextColor={colors.mutedForeground}
           style={styles.input}
+          keyboardType="default"
           multiline
+          scrollEnabled
           editable={!isSending}
         />
         <TouchableOpacity
@@ -154,7 +175,11 @@ export function SupportChatScreen() {
           onPress={() => void handleSend()}
           disabled={!newMessage.trim() || isSending}
         >
-          {isSending ? <ActivityIndicator size="small" color={colors.white} /> : <Send size={20} color={colors.white} />}
+          {isSending ? (
+            <ActivityIndicator size="small" color={colors.white} />
+          ) : (
+            <Send size={20} color={colors.white} />
+          )}
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -163,8 +188,24 @@ export function SupportChatScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.card, gap: 12 },
-  avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.card,
+    gap: 12,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
   avatarText: { color: colors.white, fontSize: 14, fontFamily: fonts.medium },
   headerInfo: { flex: 1 },
   headerTitle: { fontSize: 16, color: colors.foreground, fontFamily: fonts.medium },
@@ -185,20 +226,62 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   errorText: { flex: 1, color: colors.foreground, fontSize: 13, fontFamily: fonts.regular },
-  retryBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: colors.white },
+  retryBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: colors.white,
+  },
   retryText: { color: colors.destructive, fontSize: 13, fontFamily: fonts.medium },
   messages: { flex: 1 },
   messagesInner: { padding: 24, gap: 16, flexGrow: 1 },
   msgRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 12 },
   msgRowOwn: { flexDirection: 'row-reverse' },
-  bubble: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 10, maxWidth: '80%' },
+  bubble: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    maxWidth: '80%',
+  },
   bubbleOwn: { backgroundColor: colors.primary, borderWidth: 0 },
   bubbleText: { fontSize: 15, color: colors.foreground, lineHeight: 22, fontFamily: fonts.regular },
   bubbleTextOwn: { color: colors.white },
   bubbleTime: { fontSize: 11, color: colors.mutedForeground, marginTop: 4, fontFamily: fonts.regular },
   bubbleTimeOwn: { color: 'rgba(255,255,255,0.7)' },
-  inputBar: { flexDirection: 'row', alignItems: 'flex-end', gap: 12, paddingHorizontal: 24, paddingVertical: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.card },
-  input: { flex: 1, minHeight: 48, maxHeight: 120, backgroundColor: colors.inputBackground, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, color: colors.foreground, fontFamily: fonts.regular },
-  sendBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  inputBar: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  input: {
+    flex: 1,
+    minHeight: 48,
+    maxHeight: 120,
+    backgroundColor: colors.inputBackground,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: colors.foreground,
+    fontFamily: fonts.input,
+    textAlignVertical: 'top',
+  },
+  sendBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
   sendBtnDisabled: { opacity: 0.5 },
 });

@@ -35,6 +35,13 @@ export interface Friend {
   friendship_id: number;
 }
 
+export interface MobileUser {
+  id: number;
+  display_name: string;
+  phone?: string;
+  created_at: string;
+}
+
 export interface PendingRequest {
   id: number;
   requester_id: number;
@@ -48,6 +55,7 @@ export interface Conversation {
   id: number;
   type: 'direct' | 'group';
   name?: string;
+  room_key?: string | null;
   created_at: string;
   last_message?: string;
   unread_count?: number;
@@ -60,6 +68,24 @@ export interface ChatMessage {
   sender_name: string;
   content: string;
   sent_at: string;
+}
+
+export interface CommunityRoom {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  conversation_id: number | null;
+  members_count: number;
+  messages_count: number;
+  last_message?: string | null;
+  last_message_at?: string | null;
+}
+
+export interface CommunityRoomSession {
+  room: CommunityRoom;
+  conversation: Conversation;
 }
 
 // ─── Base request ─────────────────────────────────────────
@@ -112,6 +138,14 @@ export async function getCheckins(userId = DEMO_USER_ID) {
   return request(`/users/${userId}/checkins`);
 }
 
+export async function getUser(userId = DEMO_USER_ID) {
+  return request<MobileUser>(`/users/${userId}`);
+}
+
+export async function getMobileUsers() {
+  return request<MobileUser[]>('/users');
+}
+
 // ─── New: User search ─────────────────────────────────────
 export async function searchUsers(q: string, userId = DEMO_USER_ID) {
   return request<UserSearchResult[]>(`/users/search?q=${encodeURIComponent(q)}&requesterId=${userId}`);
@@ -133,23 +167,33 @@ export async function sendFriendRequest(addresseeId: number, userId = DEMO_USER_
   });
 }
 
-export async function acceptFriendRequest(friendshipId: number) {
+export async function acceptFriendRequest(friendshipId: number, userId = DEMO_USER_ID) {
   return request(`/friendships/${friendshipId}/accept`, {
     method: 'PUT',
-    body: JSON.stringify({ userId: DEMO_USER_ID }),
+    body: JSON.stringify({ userId }),
   });
 }
 
-export async function rejectFriendRequest(friendshipId: number) {
+export async function rejectFriendRequest(friendshipId: number, userId = DEMO_USER_ID) {
   return request(`/friendships/${friendshipId}/reject`, {
     method: 'PUT',
-    body: JSON.stringify({ userId: DEMO_USER_ID }),
+    body: JSON.stringify({ userId }),
   });
 }
 
 // ─── New: Conversations ───────────────────────────────────
 export async function getConversations(userId = DEMO_USER_ID) {
   return request<Conversation[]>(`/users/${userId}/conversations`);
+}
+
+export async function getCommunityRooms() {
+  return request<CommunityRoom[]>('/community-rooms');
+}
+
+export async function joinCommunityRoom(roomId: string, userId = DEMO_USER_ID) {
+  return request<CommunityRoomSession>(`/users/${userId}/community-rooms/${encodeURIComponent(roomId)}/join`, {
+    method: 'POST',
+  });
 }
 
 export async function createConversation(
@@ -170,9 +214,9 @@ export async function getFriendConversation(friendId: number, userId = DEMO_USER
 }
 
 // ─── New: Chat messages (REST fallback / history) ─────────
-export async function getMessages(conversationId: number, limit = 50) {
+export async function getMessages(conversationId: number, limit = 50, userId = DEMO_USER_ID) {
   return request<ChatMessage[]>(
-    `/conversations/${conversationId}/messages?limit=${limit}&userId=${DEMO_USER_ID}`
+    `/conversations/${conversationId}/messages?limit=${limit}&userId=${userId}`
   );
 }
 

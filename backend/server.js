@@ -41,6 +41,28 @@ function renameColumnIfNeeded(tableName, oldColumnName, newColumnName) {
   console.log(`Migrated ${tableName}.${oldColumnName} -> ${newColumnName}`);
 }
 
+function addColumnIfNeeded(tableName, columnName, columnDefinition) {
+  const hasColumn = !!tableHasColumn(tableName, columnName);
+
+  if (hasColumn) {
+    return;
+  }
+
+  const tableExists = db.prepare(`
+    SELECT 1
+    FROM sqlite_master
+    WHERE type = 'table' AND name = ?
+    LIMIT 1
+  `).get(tableName);
+
+  if (!tableExists) {
+    return;
+  }
+
+  db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDefinition}`);
+  console.log(`Added column ${tableName}.${columnName}`);
+}
+
 function ensureUniqueEmergencyCardUserId() {
   const hasUserId = !!tableHasColumn('emergency_cards', 'user_id');
   if (!hasUserId) {
@@ -73,6 +95,7 @@ function runStartupMigrations() {
   renameColumnIfNeeded('checkins', 'checked_in_at', 'created_at');
   renameColumnIfNeeded('support_messages', 'mobile_user_id', 'user_id');
   renameColumnIfNeeded('emergency_cards', 'mobile_user_id', 'user_id');
+  addColumnIfNeeded('conversations', 'room_key', 'TEXT');
   ensureUniqueEmergencyCardUserId();
 }
 
@@ -100,6 +123,7 @@ CREATE TABLE IF NOT EXISTS conversations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   type TEXT NOT NULL DEFAULT 'direct',
   name TEXT,
+  room_key TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -159,6 +183,9 @@ CREATE INDEX IF NOT EXISTS idx_conv_member_user ON conversation_members(user_id)
 CREATE INDEX IF NOT EXISTS idx_chat_conv_sent ON chat_messages(conversation_id, sent_at);
 CREATE INDEX IF NOT EXISTS idx_checkins_user_created ON checkins(user_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_support_user_created ON support_messages(user_id, created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_conversations_room_key
+  ON conversations(room_key)
+  WHERE room_key IS NOT NULL;
 `);
 
 const usersCount = db.prepare(`SELECT COUNT(*) AS count FROM mobile_users`).get();
@@ -183,6 +210,44 @@ if (usersCount.count === 0) {
 
   console.log('Seeded sample mobile_users');
 }
+
+const COMMUNITY_ROOMS = [
+  {
+    id: 'general',
+    name: 'ทั่วไป',
+    description: 'พูดคุยทั่วไปและแบ่งปันเรื่องราวในชีวิตประจำวัน',
+    icon: '💬',
+    color: '#7FA882',
+  },
+  {
+    id: 'living-alone',
+    name: 'อยู่คนเดียว',
+    description: 'แบ่งปันประสบการณ์และให้กำลังใจกันสำหรับคนที่อาศัยอยู่คนเดียว',
+    icon: '🏠',
+    color: '#6B9AB1',
+  },
+  {
+    id: 'senior-care',
+    name: 'ดูแลผู้สูงอายุ',
+    description: 'แชร์คำแนะนำและประสบการณ์ในการดูแลผู้สูงอายุ',
+    icon: '👵',
+    color: '#D9A95F',
+  },
+  {
+    id: 'mental-support',
+    name: 'กำลังใจและสุขภาพใจ',
+    description: 'พื้นที่ปลอดภัยสำหรับระบายความรู้สึกและรับกำลังใจจากชุมชน',
+    icon: '💚',
+    color: '#22C55E',
+  },
+  {
+    id: 'nearby',
+    name: 'พื้นที่ใกล้คุณ',
+    description: 'คุยกับผู้คนในพื้นที่ใกล้เคียงโดยไม่เปิดเผยตำแหน่งแบบละเอียด',
+    icon: '📍',
+    color: '#B47C9E',
+  },
+];
 
 function ensureMobileUserExists(userId) {
   const user = db.prepare(`
@@ -276,6 +341,97 @@ function getOrCreateDirectConversation(userA, userB) {
     FROM conversations
     WHERE id = ?
   `).get(conversationId);
+}
+
+function getCommunityRoomDefinition(roomId) {
+  const room = COMMUNITY_ROOMS.find((item) => item.id === roomId);
+
+  if (!room) {
+    const err = new Error('Community room not found');
+    err.status = 404;
+    throw err;
+  }
+
+  return room;
+}
+
+function getOrCreateCommunityConversation(roomId, userId) {
+  const room = getCommunityRoomDefinition(roomId);
+
+  let conversation = db.prepare(`
+    SELECT id, type, name, room_key, created_at
+    FROM conversations
+    WHERE room_key = ?
+    LIMIT 1
+  `).get(room.id);
+
+  if (!conversation) {
+    const inserted = db.prepare(`
+      INSERT INTO conversations (type, name, room_key)
+      VALUES ('group', ?, ?)
+    `).run(room.name, room.id);
+
+    conversation = db.prepare(`
+      SELECT id, type, name, room_key, created_at
+      FROM conversations
+      WHERE id = ?
+      LIMIT 1
+    `).get(inserted.lastInsertRowid);
+  }
+
+  if (userId && !isConversationMember(conversation.id, userId)) {
+    db.prepare(`
+      INSERT INTO conversation_members (conversation_id, user_id)
+      VALUES (?, ?)
+    `).run(conversation.id, userId);
+  }
+
+  return conversation;
+}
+
+function getCommunityRooms() {
+  return COMMUNITY_ROOMS.map((room) => {
+    const stats = db.prepare(`
+      SELECT
+        c.id AS conversation_id,
+        (
+          SELECT COUNT(*)
+          FROM conversation_members cm
+          WHERE cm.conversation_id = c.id
+        ) AS members_count,
+        (
+          SELECT COUNT(*)
+          FROM chat_messages msg
+          WHERE msg.conversation_id = c.id
+        ) AS messages_count,
+        (
+          SELECT msg.content
+          FROM chat_messages msg
+          WHERE msg.conversation_id = c.id
+          ORDER BY datetime(msg.sent_at) DESC, msg.id DESC
+          LIMIT 1
+        ) AS last_message,
+        (
+          SELECT msg.sent_at
+          FROM chat_messages msg
+          WHERE msg.conversation_id = c.id
+          ORDER BY datetime(msg.sent_at) DESC, msg.id DESC
+          LIMIT 1
+        ) AS last_message_at
+      FROM conversations c
+      WHERE c.room_key = ?
+      LIMIT 1
+    `).get(room.id);
+
+    return {
+      ...room,
+      conversation_id: stats?.conversation_id ?? null,
+      members_count: stats?.members_count ?? 0,
+      messages_count: stats?.messages_count ?? 0,
+      last_message: stats?.last_message ?? null,
+      last_message_at: stats?.last_message_at ?? null,
+    };
+  });
 }
 
 function formatTimeLabel(isoString) {
@@ -613,6 +769,20 @@ app.post('/api/admin/support/:userId/messages', (req, res) => {
   }
 });
 
+app.get('/api/app/users', (req, res) => {
+  try {
+    const rows = db.prepare(`
+      SELECT id, display_name, phone, created_at
+      FROM mobile_users
+      ORDER BY id ASC
+    `).all();
+
+    return res.json(rows);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 app.get('/api/app/users/search', (req, res) => {
   try {
     const requesterId = Number(req.query.requesterId);
@@ -912,6 +1082,36 @@ app.get('/api/app/users/:userId/conversations', (req, res) => {
     `).all(userId);
 
     return res.json(rows);
+  } catch (err) {
+    return res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
+app.get('/api/app/community-rooms', (req, res) => {
+  try {
+    return res.json(getCommunityRooms());
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/app/users/:userId/community-rooms/:roomId/join', (req, res) => {
+  try {
+    const userId = Number(req.params.userId);
+    const roomId = String(req.params.roomId || '').trim();
+
+    if (!userId || !roomId) {
+      return res.status(400).json({ message: 'userId and roomId are required' });
+    }
+
+    ensureMobileUserExists(userId);
+    const conversation = getOrCreateCommunityConversation(roomId, userId);
+    const room = getCommunityRooms().find((item) => item.id === roomId);
+
+    return res.json({
+      room,
+      conversation,
+    });
   } catch (err) {
     return res.status(err.status || 500).json({ message: err.message });
   }
