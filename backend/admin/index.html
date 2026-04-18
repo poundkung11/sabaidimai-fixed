@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sabaai-Dii-Mai Admin Dashboard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg: #f6f5ef;
+      --card: #ffffff;
+      --line: rgba(0, 0, 0, 0.08);
+      --text: #2f312f;
+      --muted: #70757b;
+      --primary: #22c55e;
+      --primary-soft: rgba(34, 197, 94, 0.1);
+      --warning: #d9a95f;
+      --danger: #b44c4c;
+      --blue: #3b82f6;
+      --shadow: 0 18px 40px rgba(31, 41, 55, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background: linear-gradient(180deg, #faf9f4 0%, #f1f0e9 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(10px);
+      padding: 28px 18px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+
+    .brand {
+      padding: 10px 12px 20px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 20px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--primary), #6ddf96);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .brand h1 {
+      font-size: 17px;
+      line-height: 1.3;
+    }
+
+    .brand p {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .nav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .nav button {
+      width: 100%;
+      text-align: left;
+      border: 0;
+      background: transparent;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font: inherit;
+      color: var(--muted);
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    .nav button:hover,
+    .nav button.active {
+      background: var(--primary-soft);
+      color: #15803d;
+      font-weight: 600;
+    }
+
+    .sidebar-note {
+      margin-top: 22px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar-note .label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+
+    .sidebar-note .value {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .main {
+      padding: 28px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .topbar h2 {
+      font-size: 28px;
+      line-height: 1.1;
+    }
+
+    .topbar p {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .button {
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 16px;
+      font: inherit;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    .button.primary {
+      background: var(--primary);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .button.secondary {
+      background: #fff;
+      border: 1px solid var(--line);
+      color: var(--text);
+    }
+
+    .status-pill {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .status-pill strong {
+      color: var(--text);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .stat-card,
+    .panel {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+    }
+
+    .stat-card {
+      padding: 18px 18px 16px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 30px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .stat-sub {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.3fr 0.9fr;
+      gap: 18px;
+    }
+
+    .panel {
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .panel-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .panel-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      font-size: 13px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    th {
+      background: #fafaf7;
+      color: var(--muted);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .badge.accepted {
+      background: rgba(34, 197, 94, 0.12);
+      color: #15803d;
+    }
+
+    .badge.pending {
+      background: rgba(217, 169, 95, 0.18);
+      color: #9a6700;
+    }
+
+    .badge.rejected {
+      background: rgba(180, 76, 76, 0.12);
+      color: var(--danger);
+    }
+
+    .badge.group {
+      background: rgba(59, 130, 246, 0.12);
+      color: #1d4ed8;
+    }
+
+    .badge.direct {
+      background: rgba(112, 117, 123, 0.12);
+      color: #4b5563;
+    }
+
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .list-item {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 16px;
+      padding: 14px 16px;
+    }
+
+    .list-item-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .list-item-title {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .list-item-meta,
+    .muted {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .empty {
+      padding: 28px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      background: #fff;
+      border: 1px dashed var(--line);
+      border-radius: 16px;
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .action-link {
+      border: 0;
+      background: transparent;
+      color: #15803d;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 600;
+      padding: 0;
+    }
+
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(17, 24, 39, 0.35);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 100;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      width: min(760px, 100%);
+      max-height: 85vh;
+      overflow: auto;
+      background: #fff;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .modal-close {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 10px;
+      width: 38px;
+      height: 38px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .message {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: #fbfbf8;
+      margin-bottom: 10px;
+    }
+
+    .message-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .message-body {
+      font-size: 14px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    @media (max-width: 1200px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 880px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .main {
+        padding: 18px;
+      }
+
+      .topbar {
+        flex-direction: column;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">
+          <div class="brand-icon">S</div>
+          <div>
+            <h1>Sabaai-Dii-Mai</h1>
+            <p>Admin dashboard สำหรับ backend ปัจจุบัน</p>
+          </div>
+        </div>
+        <p>เปิดดูข้อมูลจาก API จริงของระบบเดียวกับแอปมือถือ</p>
+      </div>
+
+      <nav class="nav">
+        <button class="active" data-page-target="overview">ภาพรวม</button>
+        <button data-page-target="users">ผู้ใช้</button>
+        <button data-page-target="friendships">เพื่อน</button>
+        <button data-page-target="conversations">แชต</button>
+        <button data-page-target="support">Support</button>
+        <button data-page-target="checkins">Check-ins</button>
+      </nav>
+
+      <div class="sidebar-note">
+        <div class="label">สถานะระบบ</div>
+        <div class="value" id="sidebar-health">กำลังตรวจสอบ...</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div>
+          <h2>Backend Dashboard</h2>
+          <p>ดูข้อมูล users, friendships, conversations, support และ check-ins จาก backend โดยตรง</p>
+        </div>
+        <div class="actions">
+          <div class="status-pill">
+            API health: <strong id="health-pill">กำลังโหลด...</strong>
+          </div>
+          <button class="button secondary" id="refresh-button">รีเฟรชข้อมูล</button>
+          <button class="button primary" id="open-api-button">เปิด health endpoint</button>
+        </div>
+      </div>
+
+      <section class="page active" data-page="overview">
+        <div class="stats-grid" id="stats-grid"></div>
+
+        <div class="layout">
+          <div>
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">ผู้ใช้ล่าสุด</div>
+                  <div class="panel-subtitle">รายการ user และจำนวนเพื่อนที่เชื่อมอยู่</div>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>ชื่อ</th>
+                      <th>เบอร์โทร</th>
+                      <th>เพื่อน</th>
+                      <th>คำขอรอ</th>
+                      <th>สร้างเมื่อ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="users-preview-body"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">ห้องแชตล่าสุด</div>
+                  <div class="panel-subtitle">ดูข้อความล่าสุดของแต่ละ conversation</div>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ห้อง</th>
+                      <th>ประเภท</th>
+                      <th>สมาชิก</th>
+                      <th>ข้อความ</th>
+                      <th>ล่าสุด</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="conversations-preview-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Support Threads</div>
+                  <div class="panel-subtitle">ผู้ใช้ที่มีการคุยกับทีม support</div>
+                </div>
+              </div>
+              <div class="list" id="support-list"></div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Check-ins ล่าสุด</div>
+                  <div class="panel-subtitle">สถานะการเช็กอินที่บันทึกล่าสุด</div>
+                </div>
+              </div>
+              <div class="list" id="checkins-list"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" data-page="users">
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">ผู้ใช้ทั้งหมด</div>
+              <div class="panel-subtitle">ดึงจากตาราง mobile_users พร้อมสถิติพื้นฐาน</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ชื่อ</th>
+                  <th>เบอร์โทร</th>
+                  <th>เพื่อน</th>
+                  <th>คำขอที่รอรับ</th>
+                  <th>สร้างเมื่อ</th>
+                </tr>
+              </thead>
+              <tbody id="users-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" data-page="friendships">
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Friendships</div>
+              <div class="panel-subtitle">ดูคำขอเพื่อนที่ pending และรายการที่ accepted แล้ว</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ผู้ส่ง</th>
+                  <th>ผู้รับ</th>
+                  <th>สถานะ</th>
+                  <th>สร้างเมื่อ</th>
+                </tr>
+              </thead>
+              <tbody id="friendships-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" data-page="conversations">
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Conversations</div>
+              <div class="panel-subtitle">ห้องแชตทั้งหมดในระบบ พร้อมข้อความล่าสุด</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ชื่อห้อง</th>
+                  <th>ประเภท</th>
+                  <th>สมาชิก</th>
+                  <th>จำนวนข้อความ</th>
+                  <th>ข้อความล่าสุด</th>
+                  <th>ล่าสุดเมื่อ</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="conversations-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">ข้อความล่าสุดทั้งระบบ</div>
+              <div class="panel-subtitle">รวม recent messages จากทุก conversation</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ห้อง</th>
+                  <th>ผู้ส่ง</th>
+                  <th>ข้อความ</th>
+                  <th>เวลา</th>
+                </tr>
+              </thead>
+              <tbody id="messages-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" data-page="support">
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Support Threads</div>
+              <div class="panel-subtitle">ภาพรวมของแต่ละผู้ใช้ที่มีการคุย support</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>User ID</th>
+                  <th>ชื่อ</th>
+                  <th>เบอร์โทร</th>
+                  <th>จำนวนข้อความ</th>
+                  <th>ล่าสุดเมื่อ</th>
+                </tr>
+              </thead>
+              <tbody id="support-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" data-page="checkins">
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Check-ins ล่าสุด</div>
+              <div class="panel-subtitle">ดูสถานะและ source ของการเช็กอินแต่ละครั้ง</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ผู้ใช้</th>
+                  <th>สถานะ</th>
+                  <th>แหล่งที่มา</th>
+                  <th>เวลา</th>
+                </tr>
+              </thead>
+              <tbody id="checkins-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="messages-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="panel-title" id="modal-title">ข้อความในห้องแชต</div>
+          <div class="panel-subtitle" id="modal-subtitle">กำลังโหลด...</div>
+        </div>
+        <button class="modal-close" id="modal-close" type="button">×</button>
+      </div>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      dashboard: null,
+      activePage: 'overview',
+    };
+
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+    function formatDate(value) {
+      if (!value) return '-';
+      try {
+        return new Date(value).toLocaleString('th-TH', {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        });
+      } catch {
+        return value;
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function badgeClass(status) {
+      if (status === 'accepted') return 'accepted';
+      if (status === 'pending') return 'pending';
+      if (status === 'group') return 'group';
+      if (status === 'direct') return 'direct';
+      return 'rejected';
+    }
+
+    async function apiGet(path) {
+      const response = await fetch(path);
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      return response.json();
+    }
+
+    function renderStats(stats) {
+      const cards = [
+        {
+          label: 'ผู้ใช้ทั้งหมด',
+          value: stats.users_count,
+          sub: `${stats.accepted_friendships} friendship ที่ยืนยันแล้ว`,
+        },
+        {
+          label: 'คำขอเพื่อนที่รอ',
+          value: stats.pending_friendships,
+          sub: 'ต้องการการตอบรับจากผู้ใช้',
+        },
+        {
+          label: 'ห้องแชตทั้งหมด',
+          value: stats.conversations_count,
+          sub: `${stats.messages_count} ข้อความในระบบ`,
+        },
+        {
+          label: 'Check-ins วันนี้',
+          value: stats.today_checkins,
+          sub: `${stats.support_messages_count} ข้อความ support สะสม`,
+        },
+      ];
+
+      $('#stats-grid').innerHTML = cards.map(card => `
+        <div class="stat-card">
+          <div class="stat-label">${escapeHtml(card.label)}</div>
+          <div class="stat-value">${escapeHtml(card.value)}</div>
+          <div class="stat-sub">${escapeHtml(card.sub)}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderUsers(users) {
+      const rows = users.map(user => `
+        <tr>
+          <td>${user.id}</td>
+          <td>${escapeHtml(user.display_name)}</td>
+          <td>${escapeHtml(user.phone || '-')}</td>
+          <td>${user.friends_count}</td>
+          <td>${user.pending_requests}</td>
+          <td>${escapeHtml(formatDate(user.created_at))}</td>
+        </tr>
+      `).join('');
+
+      $('#users-preview-body').innerHTML = rows || `<tr><td colspan="6"><div class="empty">ยังไม่มีผู้ใช้</div></td></tr>`;
+      $('#users-body').innerHTML = rows || `<tr><td colspan="6"><div class="empty">ยังไม่มีผู้ใช้</div></td></tr>`;
+    }
+
+    function renderFriendships(friendships) {
+      $('#friendships-body').innerHTML = friendships.length ? friendships.map(item => `
+        <tr>
+          <td>${item.id}</td>
+          <td>${escapeHtml(item.requester_name)}</td>
+          <td>${escapeHtml(item.addressee_name)}</td>
+          <td><span class="badge ${badgeClass(item.status)}">${escapeHtml(item.status)}</span></td>
+          <td>${escapeHtml(formatDate(item.created_at))}</td>
+        </tr>
+      `).join('') : `<tr><td colspan="5"><div class="empty">ยังไม่มี friendship</div></td></tr>`;
+    }
+
+    function renderConversations(conversations) {
+      const previewRows = conversations.slice(0, 6).map(item => `
+        <tr>
+          <td>${escapeHtml(item.name)}</td>
+          <td><span class="badge ${badgeClass(item.type)}">${escapeHtml(item.type)}</span></td>
+          <td>${item.members_count}</td>
+          <td>${item.messages_count}</td>
+          <td>${escapeHtml(formatDate(item.last_message_at || item.created_at))}</td>
+          <td><button class="action-link" data-open-conversation="${item.id}" data-conversation-name="${escapeHtml(item.name)}">ดูข้อความ</button></td>
+        </tr>
+      `).join('');
+
+      const fullRows = conversations.map(item => `
+        <tr>
+          <td>${item.id}</td>
+          <td>${escapeHtml(item.name)}</td>
+          <td><span class="badge ${badgeClass(item.type)}">${escapeHtml(item.type)}</span></td>
+          <td>${item.members_count}</td>
+          <td>${item.messages_count}</td>
+          <td>${escapeHtml(item.last_message || '-')}</td>
+          <td>${escapeHtml(formatDate(item.last_message_at || item.created_at))}</td>
+          <td><button class="action-link" data-open-conversation="${item.id}" data-conversation-name="${escapeHtml(item.name)}">เปิดดู</button></td>
+        </tr>
+      `).join('');
+
+      $('#conversations-preview-body').innerHTML = previewRows || `<tr><td colspan="6"><div class="empty">ยังไม่มีห้องแชต</div></td></tr>`;
+      $('#conversations-body').innerHTML = fullRows || `<tr><td colspan="8"><div class="empty">ยังไม่มีห้องแชต</div></td></tr>`;
+    }
+
+    function renderRecentMessages(messages) {
+      $('#messages-body').innerHTML = messages.length ? messages.map(item => `
+        <tr>
+          <td>${item.id}</td>
+          <td>${escapeHtml(item.conversation_name)}</td>
+          <td>${escapeHtml(item.sender_name)}</td>
+          <td>${escapeHtml(item.content)}</td>
+          <td>${escapeHtml(formatDate(item.sent_at))}</td>
+        </tr>
+      `).join('') : `<tr><td colspan="5"><div class="empty">ยังไม่มีข้อความ</div></td></tr>`;
+    }
+
+    function renderSupport(threads) {
+      $('#support-list').innerHTML = threads.length ? threads.slice(0, 6).map(item => `
+        <div class="list-item">
+          <div class="list-item-head">
+            <div class="list-item-title">${escapeHtml(item.display_name)}</div>
+            <div class="list-item-meta">${escapeHtml(formatDate(item.last_message_at))}</div>
+          </div>
+          <div class="muted">เบอร์โทร: ${escapeHtml(item.phone || '-')}</div>
+          <div class="muted">จำนวนข้อความ: ${item.messages_count}</div>
+        </div>
+      `).join('') : `<div class="empty">ยังไม่มี thread support</div>`;
+
+      $('#support-body').innerHTML = threads.length ? threads.map(item => `
+        <tr>
+          <td>${item.user_id}</td>
+          <td>${escapeHtml(item.display_name)}</td>
+          <td>${escapeHtml(item.phone || '-')}</td>
+          <td>${item.messages_count}</td>
+          <td>${escapeHtml(formatDate(item.last_message_at))}</td>
+        </tr>
+      `).join('') : `<tr><td colspan="5"><div class="empty">ยังไม่มี thread support</div></td></tr>`;
+    }
+
+    function renderCheckins(checkins) {
+      $('#checkins-list').innerHTML = checkins.length ? checkins.slice(0, 6).map(item => `
+        <div class="list-item">
+          <div class="list-item-head">
+            <div class="list-item-title">${escapeHtml(item.display_name)}</div>
+            <div class="list-item-meta">${escapeHtml(formatDate(item.created_at))}</div>
+          </div>
+          <div class="muted">สถานะ: ${escapeHtml(item.status)}</div>
+          <div class="muted">ที่มา: ${escapeHtml(item.source || '-')}</div>
+        </div>
+      `).join('') : `<div class="empty">ยังไม่มี check-in</div>`;
+
+      $('#checkins-body').innerHTML = checkins.length ? checkins.map(item => `
+        <tr>
+          <td>${item.id}</td>
+          <td>${escapeHtml(item.display_name)}</td>
+          <td>${escapeHtml(item.status)}</td>
+          <td>${escapeHtml(item.source || '-')}</td>
+          <td>${escapeHtml(formatDate(item.created_at))}</td>
+        </tr>
+      `).join('') : `<tr><td colspan="5"><div class="empty">ยังไม่มี check-in</div></td></tr>`;
+    }
+
+    function renderDashboard(data) {
+      state.dashboard = data;
+      renderStats(data.stats);
+      renderUsers(data.users);
+      renderFriendships(data.friendships);
+      renderConversations(data.conversations);
+      renderRecentMessages(data.recentMessages);
+      renderSupport(data.supportThreads);
+      renderCheckins(data.recentCheckins);
+    }
+
+    function setPage(page) {
+      state.activePage = page;
+      $$('.page').forEach(element => {
+        element.classList.toggle('active', element.dataset.page === page);
+      });
+      $$('.nav button').forEach(button => {
+        button.classList.toggle('active', button.dataset.pageTarget === page);
+      });
+    }
+
+    async function refreshHealth() {
+      try {
+        const health = await apiGet('/api/health');
+        const label = `${health.ok ? 'พร้อมใช้งาน' : 'มีปัญหา'} · ${formatDate(health.time)}`;
+        $('#sidebar-health').textContent = label;
+        $('#health-pill').textContent = 'OK';
+      } catch (error) {
+        $('#sidebar-health').textContent = 'เชื่อมต่อไม่ได้';
+        $('#health-pill').textContent = 'ERROR';
+        console.error(error);
+      }
+    }
+
+    async function loadDashboard() {
+      $('#health-pill').textContent = 'กำลังโหลด...';
+      try {
+        const dashboard = await apiGet('/api/admin/dashboard');
+        renderDashboard(dashboard);
+        await refreshHealth();
+      } catch (error) {
+        console.error(error);
+        $('#stats-grid').innerHTML = `<div class="empty">โหลด dashboard ไม่สำเร็จ: ${escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    async function openConversation(conversationId, conversationName) {
+      const modal = $('#messages-modal');
+      const modalTitle = $('#modal-title');
+      const modalSubtitle = $('#modal-subtitle');
+      const modalContent = $('#modal-content');
+
+      modalTitle.textContent = `ข้อความใน ${conversationName}`;
+      modalSubtitle.textContent = 'กำลังโหลดข้อความ...';
+      modalContent.innerHTML = '<div class="empty">กำลังโหลด...</div>';
+      modal.classList.add('open');
+
+      try {
+        const messages = await apiGet(`/api/admin/conversations/${conversationId}/messages`);
+        modalSubtitle.textContent = `${messages.length} ข้อความ`;
+        modalContent.innerHTML = messages.length ? messages.map(item => `
+          <div class="message">
+            <div class="message-head">
+              <strong>${escapeHtml(item.sender_name)}</strong>
+              <span>${escapeHtml(formatDate(item.sent_at))}</span>
+            </div>
+            <div class="message-body">${escapeHtml(item.content)}</div>
+          </div>
+        `).join('') : '<div class="empty">ห้องนี้ยังไม่มีข้อความ</div>';
+      } catch (error) {
+        modalSubtitle.textContent = 'โหลดไม่สำเร็จ';
+        modalContent.innerHTML = `<div class="empty">เกิดข้อผิดพลาด: ${escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    document.addEventListener('click', (event) => {
+      const navButton = event.target.closest('[data-page-target]');
+      if (navButton) {
+        setPage(navButton.dataset.pageTarget);
+      }
+
+      const openButton = event.target.closest('[data-open-conversation]');
+      if (openButton) {
+        openConversation(openButton.dataset.openConversation, openButton.dataset.conversationName);
+      }
+    });
+
+    $('#refresh-button').addEventListener('click', loadDashboard);
+    $('#open-api-button').addEventListener('click', () => {
+      window.open('/api/health', '_blank');
+    });
+    $('#modal-close').addEventListener('click', () => $('#messages-modal').classList.remove('open'));
+    $('#messages-modal').addEventListener('click', (event) => {
+      if (event.target.id === 'messages-modal') {
+        $('#messages-modal').classList.remove('open');
+      }
+    });
+
+    loadDashboard();
+  </script>
+</body>
+</html>
