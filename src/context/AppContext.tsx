@@ -23,7 +23,8 @@ interface SafeWindow {
   night: boolean;
 }
 
-interface Contact {
+export interface Contact {
+  userId?: number;
   name: string;
   phone: string;
   emergencyRef: string;
@@ -45,6 +46,7 @@ interface AppSettings {
   checkInTime: string;
   gracePeriod: number;
   primaryContact: Contact | null;
+  backupContacts: Contact[];
   batteryAlert: number | null;
   hasCompletedOnboarding: boolean;
   emergencyCard: EmergencyMedicalCard | null;
@@ -105,6 +107,7 @@ const defaultSettings: AppSettings = {
     phone: '081-234-5678',
     emergencyRef: 'primary-caregiver',
   },
+  backupContacts: [],
   batteryAlert: 20,
   hasCompletedOnboarding: false,
   emergencyCard: null,

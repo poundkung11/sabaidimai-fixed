@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "sabaidimai-rn",
+    "name": "Sabai Dii Mai",
     "slug": "sabaidimai-rn",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -20,14 +20,21 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "usesCleartextTraffic": true,
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.latthaphon_66060711.sabaidimairn"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "5b7cb225-b4b4-46b5-99d8-21d3b8671d6d"
+      }
+    }
   }
 }

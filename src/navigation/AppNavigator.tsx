@@ -8,6 +8,7 @@ import { Home, Users, Circle, Settings, UserCheck } from 'lucide-react-native';
 
 import { HomeScreen } from '../screens/HomeScreen';
 import { CommunityScreen } from '../screens/CommunityScreen';
+import { BackupContactsScreen } from '../screens/BackupContactsScreen';
 import { CircleScreen } from '../screens/CircleScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { FriendsScreen } from '../screens/FriendsScreen';
@@ -158,6 +159,7 @@ function AppStack() {
       <Stack.Screen name="FriendSearch" component={FriendSearchScreen} />
       <Stack.Screen name="SearchUser" component={FriendSearchScreen} />
       <Stack.Screen name="FriendRequests" component={FriendsScreen} />
+      <Stack.Screen name="BackupContacts" component={BackupContactsScreen} />
       <Stack.Screen name="DirectChat" component={FriendDirectChatScreen} />
 
       <Stack.Screen name="SOS" component={SOSScreen} />

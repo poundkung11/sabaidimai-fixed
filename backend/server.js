@@ -1,11 +1,18 @@
 const express = require('express');
 const cors = require('cors');
 const Database = require('better-sqlite3');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const DB_PATH = path.join(__dirname, 'sabaidimai.db');
+const ADMIN_AUTH_JWT_SECRET = process.env.ADMIN_AUTH_JWT_SECRET || 'sabaidimai-admin-auth-dev-secret';
+const ADMIN_AUTH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const MOBILE_AUTH_JWT_SECRET = process.env.MOBILE_AUTH_JWT_SECRET || 'sabaidimai-mobile-auth-dev-secret';
+const MOBILE_AUTH_TOKEN_TTL = '30d';
 
 const db = new Database(DB_PATH);
 
@@ -19,6 +26,7 @@ app.get(/^\/admin$/, (req, res) => {
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 
 db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
 
 function tableHasColumn(tableName, columnName) {
   return db.prepare(`
@@ -96,16 +104,42 @@ function runStartupMigrations() {
   renameColumnIfNeeded('support_messages', 'mobile_user_id', 'user_id');
   renameColumnIfNeeded('emergency_cards', 'mobile_user_id', 'user_id');
   addColumnIfNeeded('conversations', 'room_key', 'TEXT');
+  addColumnIfNeeded('mobile_users', 'username', 'TEXT');
+  addColumnIfNeeded('mobile_users', 'password_hash', 'TEXT');
+  addColumnIfNeeded('mobile_users', 'last_login', 'TEXT');
   ensureUniqueEmergencyCardUserId();
 }
 
 runStartupMigrations();
 
 db.exec(`
+CREATE TABLE IF NOT EXISTS admin_users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'admin',
+  is_active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+  last_login TEXT
+);
+
+CREATE TABLE IF NOT EXISTS admin_sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  admin_id INTEGER NOT NULL REFERENCES admin_users(id),
+  token_jti TEXT UNIQUE NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+  expires_at TEXT NOT NULL,
+  is_revoked INTEGER NOT NULL DEFAULT 0
+);
+
 CREATE TABLE IF NOT EXISTS mobile_users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   display_name TEXT NOT NULL,
+  username TEXT,
+  password_hash TEXT,
   phone TEXT,
+  last_login TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -183,6 +217,10 @@ CREATE INDEX IF NOT EXISTS idx_conv_member_user ON conversation_members(user_id)
 CREATE INDEX IF NOT EXISTS idx_chat_conv_sent ON chat_messages(conversation_id, sent_at);
 CREATE INDEX IF NOT EXISTS idx_checkins_user_created ON checkins(user_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_support_user_created ON support_messages(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_sessions_jti ON admin_sessions(token_jti);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mobile_users_username
+  ON mobile_users(username)
+  WHERE username IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_conversations_room_key
   ON conversations(room_key)
   WHERE room_key IS NOT NULL;
@@ -248,6 +286,213 @@ const COMMUNITY_ROOMS = [
     color: '#B47C9E',
   },
 ];
+
+const MOBILE_AVATAR_COLORS = ['#7FA882', '#D9A95F', '#6B9AB1', '#B47C9E', '#C47B6A', '#22C55E'];
+
+function normalizeUsername(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function getMobileUserAvatarColor(userId) {
+  const index = Math.abs(Number(userId) || 0) % MOBILE_AVATAR_COLORS.length;
+  return MOBILE_AVATAR_COLORS[index];
+}
+
+function getMobileUserInitials(displayName) {
+  const words = String(displayName || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+
+  const compact = String(displayName || '').trim();
+  return compact.slice(0, 2).toUpperCase() || '??';
+}
+
+function mapMobileAuthUser(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    username: row.username,
+    displayName: row.display_name,
+    phone: row.phone || undefined,
+    avatarColor: getMobileUserAvatarColor(row.id),
+    initials: getMobileUserInitials(row.display_name),
+    createdAt: row.created_at,
+    lastSeen: row.last_login || row.created_at,
+  };
+}
+
+function findMobileUserByUsername(username) {
+  return db.prepare(`
+    SELECT id, username, password_hash, display_name, phone, created_at, last_login
+    FROM mobile_users
+    WHERE username = ?
+    LIMIT 1
+  `).get(username);
+}
+
+function issueMobileAuthToken(user) {
+  return jwt.sign(
+    {
+      sub: String(user.id),
+      userId: user.id,
+      username: user.username,
+    },
+    MOBILE_AUTH_JWT_SECRET,
+    { expiresIn: MOBILE_AUTH_TOKEN_TTL }
+  );
+}
+
+function getBearerToken(req) {
+  const header = String(req.headers.authorization || '');
+
+  if (!header.startsWith('Bearer ')) {
+    return null;
+  }
+
+  return header.slice(7).trim() || null;
+}
+
+function mapAdminUser(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    username: row.username,
+    displayName: row.display_name,
+    role: row.role,
+    isActive: Boolean(row.is_active),
+    createdAt: row.created_at,
+    lastLogin: row.last_login,
+  };
+}
+
+function findAdminByUsername(username) {
+  return db.prepare(`
+    SELECT id, username, password_hash, display_name, role, is_active, created_at, last_login
+    FROM admin_users
+    WHERE username = ?
+    LIMIT 1
+  `).get(username);
+}
+
+function issueAdminAuthToken(admin, tokenJti) {
+  return jwt.sign(
+    {
+      sub: String(admin.id),
+      adminId: admin.id,
+      username: admin.username,
+      role: admin.role,
+      type: 'admin',
+    },
+    ADMIN_AUTH_JWT_SECRET,
+    {
+      expiresIn: Math.floor(ADMIN_AUTH_TOKEN_TTL_MS / 1000),
+      jwtid: tokenJti,
+    }
+  );
+}
+
+function requireAdminAuth(req, res, next) {
+  const token = getBearerToken(req);
+
+  if (!token) {
+    return res.status(401).json({ message: 'Admin authorization token is required' });
+  }
+
+  try {
+    const payload = jwt.verify(token, ADMIN_AUTH_JWT_SECRET);
+    const adminId = Number(payload?.adminId || payload?.sub);
+    const tokenJti = String(payload?.jti || '');
+
+    if (!adminId || !tokenJti) {
+      return res.status(401).json({ message: 'Invalid admin auth token' });
+    }
+
+    const session = db.prepare(`
+      SELECT
+        s.id AS session_id,
+        s.token_jti,
+        s.expires_at,
+        s.is_revoked,
+        a.id,
+        a.username,
+        a.display_name,
+        a.role,
+        a.is_active,
+        a.created_at,
+        a.last_login
+      FROM admin_sessions s
+      JOIN admin_users a ON a.id = s.admin_id
+      WHERE s.token_jti = ?
+      LIMIT 1
+    `).get(tokenJti);
+
+    if (!session || session.id !== adminId) {
+      return res.status(401).json({ message: 'Admin session not found' });
+    }
+
+    if (session.is_revoked) {
+      return res.status(401).json({ message: 'Admin session has been logged out' });
+    }
+
+    if (!session.is_active) {
+      return res.status(403).json({ message: 'Admin account is disabled' });
+    }
+
+    if (new Date(session.expires_at).getTime() <= Date.now()) {
+      return res.status(401).json({ message: 'Admin session has expired' });
+    }
+
+    req.adminAuth = mapAdminUser(session);
+    req.adminSessionJti = tokenJti;
+    return next();
+  } catch (error) {
+    return res.status(401).json({ message: 'Invalid or expired admin token' });
+  }
+}
+
+function requireMobileAuth(req, res, next) {
+  const token = getBearerToken(req);
+
+  if (!token) {
+    return res.status(401).json({ message: 'Authorization token is required' });
+  }
+
+  try {
+    const payload = jwt.verify(token, MOBILE_AUTH_JWT_SECRET);
+    const userId = Number(payload?.userId || payload?.sub);
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Invalid auth token' });
+    }
+
+    const user = db.prepare(`
+      SELECT id, username, display_name, phone, created_at, last_login
+      FROM mobile_users
+      WHERE id = ?
+      LIMIT 1
+    `).get(userId);
+
+    if (!user || !user.username) {
+      return res.status(401).json({ message: 'Authenticated user not found' });
+    }
+
+    req.authUser = user;
+    return next();
+  } catch (error) {
+    return res.status(401).json({ message: 'Invalid or expired auth token' });
+  }
+}
 
 function ensureMobileUserExists(userId) {
   const user = db.prepare(`
@@ -703,6 +948,178 @@ app.get('/api/health', (req, res) => {
     db: 'connected',
     time: new Date().toISOString(),
   });
+});
+
+app.post('/api/app/auth/register', (req, res) => {
+  try {
+    const displayName = String(req.body?.displayName || '').trim();
+    const username = normalizeUsername(req.body?.username);
+    const phone = req.body?.phone ? String(req.body.phone).trim() : null;
+    const password = String(req.body?.password || '');
+
+    if (!displayName) {
+      return res.status(400).json({ message: 'displayName is required' });
+    }
+
+    if (!/^[a-z0-9._-]{3,32}$/.test(username)) {
+      return res.status(400).json({
+        message: 'Username must be 3-32 characters using lowercase letters, numbers, dot, underscore, or dash',
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    const existingUser = findMobileUserByUsername(username);
+
+    if (existingUser) {
+      return res.status(409).json({ message: 'Username already exists' });
+    }
+
+    const passwordHash = bcrypt.hashSync(password, 12);
+    const result = db.prepare(`
+      INSERT INTO mobile_users (display_name, username, password_hash, phone, last_login)
+      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `).run(displayName, username, passwordHash, phone);
+
+    const user = db.prepare(`
+      SELECT id, username, display_name, phone, created_at, last_login
+      FROM mobile_users
+      WHERE id = ?
+      LIMIT 1
+    `).get(result.lastInsertRowid);
+
+    return res.status(201).json({
+      token: issueMobileAuthToken(user),
+      user: mapMobileAuthUser(user),
+    });
+  } catch (err) {
+    return res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
+app.post('/api/app/auth/login', (req, res) => {
+  try {
+    const username = normalizeUsername(req.body?.username);
+    const password = String(req.body?.password || '');
+
+    if (!username || !password) {
+      return res.status(400).json({ message: 'username and password are required' });
+    }
+
+    const user = findMobileUserByUsername(username);
+
+    if (!user || !user.password_hash || !bcrypt.compareSync(password, user.password_hash)) {
+      return res.status(401).json({ message: 'Invalid username or password' });
+    }
+
+    db.prepare(`
+      UPDATE mobile_users
+      SET last_login = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(user.id);
+
+    const refreshedUser = db.prepare(`
+      SELECT id, username, display_name, phone, created_at, last_login
+      FROM mobile_users
+      WHERE id = ?
+      LIMIT 1
+    `).get(user.id);
+
+    return res.json({
+      token: issueMobileAuthToken(refreshedUser),
+      user: mapMobileAuthUser(refreshedUser),
+    });
+  } catch (err) {
+    return res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
+app.get('/api/app/auth/me', requireMobileAuth, (req, res) => {
+  return res.json(mapMobileAuthUser(req.authUser));
+});
+
+app.post('/api/admin/auth/login', (req, res) => {
+  try {
+    const username = String(req.body?.username || '').trim();
+    const password = String(req.body?.password || '');
+
+    if (!username || !password) {
+      return res.status(400).json({ message: 'username and password are required' });
+    }
+
+    const adminsCount = db.prepare(`SELECT COUNT(*) AS count FROM admin_users`).get().count;
+    if (!adminsCount) {
+      return res.status(503).json({ message: 'No admin accounts found. Run node setup.js in the backend folder first.' });
+    }
+
+    const admin = findAdminByUsername(username);
+
+    if (!admin || !bcrypt.compareSync(password, admin.password_hash)) {
+      return res.status(401).json({ message: 'Invalid admin username or password' });
+    }
+
+    if (!admin.is_active) {
+      return res.status(403).json({ message: 'Admin account is disabled' });
+    }
+
+    const tokenJti = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + ADMIN_AUTH_TOKEN_TTL_MS).toISOString();
+
+    db.prepare(`
+      INSERT INTO admin_sessions (admin_id, token_jti, expires_at)
+      VALUES (?, ?, ?)
+    `).run(admin.id, tokenJti, expiresAt);
+
+    db.prepare(`
+      UPDATE admin_users
+      SET last_login = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(admin.id);
+
+    const refreshedAdmin = db.prepare(`
+      SELECT id, username, display_name, role, is_active, created_at, last_login
+      FROM admin_users
+      WHERE id = ?
+      LIMIT 1
+    `).get(admin.id);
+
+    return res.json({
+      token: issueAdminAuthToken(refreshedAdmin, tokenJti),
+      admin: mapAdminUser(refreshedAdmin),
+    });
+  } catch (err) {
+    return res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
+app.get('/api/admin/auth/me', requireAdminAuth, (req, res) => {
+  return res.json({
+    admin: req.adminAuth,
+  });
+});
+
+app.post('/api/admin/auth/logout', requireAdminAuth, (req, res) => {
+  try {
+    db.prepare(`
+      UPDATE admin_sessions
+      SET is_revoked = 1
+      WHERE token_jti = ?
+    `).run(req.adminSessionJti);
+
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
+app.use('/api/admin', (req, res, next) => {
+  if (req.path === '/auth/login' || req.path === '/auth/me' || req.path === '/auth/logout') {
+    return next();
+  }
+
+  return requireAdminAuth(req, res, next);
 });
 
 app.get('/api/admin/dashboard', (req, res) => {
