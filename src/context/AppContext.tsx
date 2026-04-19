@@ -263,8 +263,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setCurrentUserId(parsedAuth?.currentUserId ?? null);
         } else {
           // ค่าเริ่มต้นสำหรับ demo app
-          setIsLoggedIn(true);
-          setCurrentUserId(1);
+          setIsLoggedIn(false);
+          setCurrentUserId(null);
         }
       } catch (error) {
         console.warn('Failed to restore saved state', error);
@@ -339,17 +339,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [isHydrated, isLoggedIn]);
 
   const login = useCallback(async (userId = 1) => {
+    setState(prev => (
+      currentUserId !== null && currentUserId !== userId
+        ? defaultState
+        : prev
+    ));
     setCurrentUserId(userId);
     setIsLoggedIn(true);
-  }, []);
+  }, [currentUserId]);
 
   const logout = useCallback(async () => {
     try {
-      await AsyncStorage.removeItem(CHAT_TOKEN_KEY);
+      await Promise.all([
+        AsyncStorage.removeItem(CHAT_TOKEN_KEY),
+        AsyncStorage.removeItem(STORAGE_KEY),
+        AsyncStorage.removeItem(AUTH_STORAGE_KEY),
+      ]);
     } catch (error) {
-      console.warn('Failed to clear chat token', error);
+      console.warn('Failed to clear local app data', error);
     }
 
+    setState(defaultState);
     setIsLoggedIn(false);
     setCurrentUserId(null);
   }, []);

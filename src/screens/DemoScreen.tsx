@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Heart, Shield, Users, Clock, Lock, Zap } from 'lucide-react-native';
+import { ArrowLeft, Heart, Shield, Users, Clock, Lock, Zap } from 'lucide-react-native';
 import { useApp } from '../context/AppContext';
 import { getMobileUsers, type MobileUser } from '../services/api';
 import { colors } from '../theme/colors';
@@ -89,8 +89,8 @@ const demos = [
 
 export function DemoScreen() {
   const navigation = useNavigation<any>();
-  const { login, currentUserId } = useApp();
-  const [selectedUserId, setSelectedUserId] = useState(currentUserId ?? 1);
+  const { login, currentUserId, state } = useApp();
+  const [selectedUserId, setSelectedUserId] = useState(currentUserId ?? 0);
   const [accounts, setAccounts] = useState<MobileUser[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
   const [accountsError, setAccountsError] = useState<string | null>(null);
@@ -127,19 +127,30 @@ export function DemoScreen() {
       return;
     }
 
+    const availableRoutes = navigation.getState().routeNames as string[];
+    const preferredRoute = screen
+      || (state.settings.hasCompletedOnboarding ? 'MainTabs' : 'OnboardingWelcome');
+    const targetRoute = availableRoutes.includes(preferredRoute)
+      ? preferredRoute
+      : (availableRoutes.includes('MainTabs') ? 'MainTabs' : null);
+
     await login(selectedAccount.id);
 
-    if (screen) {
-      navigation.navigate(screen);
-      return;
+    if (targetRoute) {
+      navigation.navigate(targetRoute);
     }
-
-    navigation.navigate('MainTabs');
   };
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.hero}>
+        {navigation.canGoBack() ? (
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <ArrowLeft size={18} color={colors.foreground} />
+            <Text style={styles.backBtnText}>กลับไปสร้างผู้ใช้</Text>
+          </TouchableOpacity>
+        ) : null}
+
         <View style={styles.heroIcon}>
           <Heart size={40} color={colors.primary} />
         </View>
@@ -308,6 +319,20 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
     padding: 40,
     alignItems: 'center',
+  },
+
+  backBtn: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 20,
+  },
+
+  backBtnText: {
+    fontSize: 14,
+    color: colors.foreground,
+    fontFamily: fonts.medium,
   },
 
   heroIcon: {

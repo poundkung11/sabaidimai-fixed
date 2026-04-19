@@ -42,6 +42,11 @@ export interface MobileUser {
   created_at: string;
 }
 
+export interface MobileUserPayload {
+  displayName: string;
+  phone?: string;
+}
+
 export interface PendingRequest {
   id: number;
   requester_id: number;
@@ -144,6 +149,20 @@ export async function getUser(userId = DEMO_USER_ID) {
 
 export async function getMobileUsers() {
   return request<MobileUser[]>('/users');
+}
+
+export async function createMobileUser(payload: MobileUserPayload) {
+  return request<MobileUser>('/users', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateMobileUser(userId: number, payload: MobileUserPayload) {
+  return request<MobileUser>(`/users/${userId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
 }
 
 // ─── New: User search ─────────────────────────────────────

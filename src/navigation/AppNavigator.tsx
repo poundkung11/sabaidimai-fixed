@@ -25,6 +25,7 @@ import { ContactSupportScreen } from '../screens/ContactSupportScreen';
 import { ChatRoomsScreen } from '../screens/ChatRoomsScreen';
 import { ChatRoomScreen } from '../screens/ChatRoomScreen';
 import { SupportChatScreen } from '../screens/SupportChatScreen';
+import { AccountProfileScreen } from '../screens/AccountProfileScreen';
 
 import { WelcomeScreen } from '../screens/onboarding/WelcomeScreen';
 import { SetupForScreen } from '../screens/onboarding/SetupForScreen';
@@ -151,10 +152,14 @@ function MainTabs() {
   );
 }
 
-function AppStack() {
+function AppStack({ hasCompletedOnboarding }: { hasCompletedOnboarding: boolean }) {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      screenOptions={{ headerShown: false }}
+      initialRouteName={hasCompletedOnboarding ? 'MainTabs' : 'OnboardingWelcome'}
+    >
       <Stack.Screen name="MainTabs" component={MainTabs} />
+      <Stack.Screen name="AccountProfile" component={AccountProfileScreen} />
 
       <Stack.Screen name="FriendSearch" component={FriendSearchScreen} />
       <Stack.Screen name="SearchUser" component={FriendSearchScreen} />
@@ -194,14 +199,15 @@ function AppStack() {
 
 function AuthStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator initialRouteName="AccountSetup" screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="AccountSetup" component={AccountProfileScreen} />
       <Stack.Screen name="Demo" component={DemoScreen} />
     </Stack.Navigator>
   );
 }
 
 export function AppNavigator() {
-  const { isHydrated, isLoggedIn } = useApp();
+  const { isHydrated, isLoggedIn, state } = useApp();
 
   if (!isHydrated) {
     return (
@@ -216,7 +222,7 @@ export function AppNavigator() {
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        {isLoggedIn ? <AppStack /> : <AuthStack />}
+        {isLoggedIn ? <AppStack hasCompletedOnboarding={state.settings.hasCompletedOnboarding} /> : <AuthStack />}
       </NavigationContainer>
     </SafeAreaProvider>
   );

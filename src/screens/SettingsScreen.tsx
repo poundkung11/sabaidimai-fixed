@@ -173,6 +173,18 @@ export function SettingsScreen() {
         </View>
 
         <Text style={styles.sectionLabel}>บัญชี</Text>
+        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('AccountProfile', { mode: 'edit' })}>
+          <View style={styles.row}>
+            <View style={styles.rowLeft}>
+              <User size={20} color={colors.primary} />
+              <View>
+                <Text style={styles.rowLabel}>ข้อมูลผู้ใช้</Text>
+                <Text style={styles.rowSubLabel}>แก้ไขชื่อและเบอร์โทรที่ใช้ให้เพื่อนค้นหาคุณ</Text>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={styles.logoutCard}
           onPress={handleLogout}

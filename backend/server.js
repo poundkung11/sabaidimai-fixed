@@ -1200,6 +1200,68 @@ app.get('/api/app/users', (req, res) => {
   }
 });
 
+app.post('/api/app/users', (req, res) => {
+  try {
+    const displayName = String(req.body?.displayName || '').trim();
+    const phone = req.body?.phone ? String(req.body.phone).trim() : null;
+
+    if (!displayName) {
+      return res.status(400).json({ message: 'displayName is required' });
+    }
+
+    const result = db.prepare(`
+      INSERT INTO mobile_users (display_name, phone)
+      VALUES (?, ?)
+    `).run(displayName, phone || null);
+
+    const user = db.prepare(`
+      SELECT id, display_name, phone, created_at
+      FROM mobile_users
+      WHERE id = ?
+      LIMIT 1
+    `).get(result.lastInsertRowid);
+
+    return res.status(201).json(user);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+app.put('/api/app/users/:userId', (req, res) => {
+  try {
+    const userId = Number(req.params.userId);
+    const displayName = String(req.body?.displayName || '').trim();
+    const phone = req.body?.phone ? String(req.body.phone).trim() : null;
+
+    if (!userId) {
+      return res.status(400).json({ message: 'userId is required' });
+    }
+
+    if (!displayName) {
+      return res.status(400).json({ message: 'displayName is required' });
+    }
+
+    ensureMobileUserExists(userId);
+
+    db.prepare(`
+      UPDATE mobile_users
+      SET display_name = ?, phone = ?
+      WHERE id = ?
+    `).run(displayName, phone || null, userId);
+
+    const user = db.prepare(`
+      SELECT id, display_name, phone, created_at
+      FROM mobile_users
+      WHERE id = ?
+      LIMIT 1
+    `).get(userId);
+
+    return res.json(user);
+  } catch (err) {
+    return res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
 app.get('/api/app/users/search', (req, res) => {
   try {
     const requesterId = Number(req.query.requesterId);
