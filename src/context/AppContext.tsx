@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, ReactNode } from 'react';
 import { createCheckIn } from '../services/api';
 
 export type UserStatus =
@@ -215,14 +215,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const hydratedRef = useRef(false);
 
-  const syncCheckInStatus = async (status: string) => {
+  const syncCheckInStatus = useCallback(async (status: string) => {
     const userId = currentUserId ?? 1;
     try {
       await createCheckIn(status, userId);
     } catch (error) {
       console.warn(`Failed to sync check-in status "${status}"`, error);
     }
-  };
+  }, [currentUserId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -338,12 +338,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, [isHydrated, isLoggedIn]);
 
-  const login = async (userId = 1) => {
+  const login = useCallback(async (userId = 1) => {
     setCurrentUserId(userId);
     setIsLoggedIn(true);
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await AsyncStorage.removeItem(CHAT_TOKEN_KEY);
     } catch (error) {
@@ -352,32 +352,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     setIsLoggedIn(false);
     setCurrentUserId(null);
-  };
+  }, []);
 
-  const updateUserStatus = (status: UserStatus) => {
+  const updateUserStatus = useCallback((status: UserStatus) => {
     setState(prev => ({ ...prev, userStatus: status }));
-  };
+  }, []);
 
-  const updatePrimaryStatus = (status: PrimaryStatus | null) => {
+  const updatePrimaryStatus = useCallback((status: PrimaryStatus | null) => {
     setState(prev => ({ ...prev, primaryStatus: status }));
-  };
+  }, []);
 
-  const updateSettings = (newSettings: Partial<AppSettings>) => {
+  const updateSettings = useCallback((newSettings: Partial<AppSettings>) => {
     setState(prev => ({
       ...prev,
       settings: { ...prev.settings, ...newSettings },
     }));
-  };
+  }, []);
 
-  const completeOnboarding = () => {
+  const completeOnboarding = useCallback(() => {
     setState(prev => ({
       ...prev,
       userStatus: 'normal',
       settings: { ...prev.settings, hasCompletedOnboarding: true },
     }));
-  };
+  }, []);
 
-  const pauseToday = () => {
+  const pauseToday = useCallback(() => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(0, 0, 0, 0);
@@ -386,9 +386,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       userStatus: 'paused',
       pausedUntil: tomorrow,
     }));
-  };
+  }, []);
 
-  const extendedPause = (days: number) => {
+  const extendedPause = useCallback((days: number) => {
     const resumeDate = new Date();
     resumeDate.setDate(resumeDate.getDate() + days);
     resumeDate.setHours(0, 0, 0, 0);
@@ -397,46 +397,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
       userStatus: 'paused',
       pausedUntil: resumeDate,
     }));
-  };
+  }, []);
 
-  const resumeFromPause = () => {
+  const resumeFromPause = useCallback(() => {
     setState(prev => ({
       ...prev,
       userStatus: 'normal',
       pausedUntil: null,
     }));
-  };
+  }, []);
 
-  const activateSOS = () => {
+  const activateSOS = useCallback(() => {
     setState(prev => ({
       ...prev,
       sosActive: true,
       userStatus: 'sos-active',
     }));
     void syncCheckInStatus('sos-active');
-  };
+  }, [syncCheckInStatus]);
 
-  const deactivateSOS = () => {
+  const deactivateSOS = useCallback(() => {
     setState(prev => ({
       ...prev,
       sosActive: false,
       userStatus: 'resolved',
     }));
     void syncCheckInStatus('resolved');
-  };
+  }, [syncCheckInStatus]);
 
-  const useExtended = () => {
+  const useExtended = useCallback(() => {
     setState(prev => {
       if (prev.extendedUsed) return prev;
       return { ...prev, extendedUsed: true, userStatus: 'grace' };
     });
-  };
+  }, []);
 
-  const resetExtended = () => {
+  const resetExtended = useCallback(() => {
     setState(prev => ({ ...prev, extendedUsed: false }));
-  };
+  }, []);
 
-  const markCheckIn = () => {
+  const markCheckIn = useCallback(() => {
     setState(prev => ({
       ...prev,
       userStatus: 'resolved',
@@ -444,7 +444,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       lastCheckInAt: new Date().toISOString(),
       primaryStatus: null,
     }));
-  };
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -469,7 +469,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
       resetExtended,
       markCheckIn,
     }),
-    [state, isHydrated, isLoggedIn, currentUserId],
+    [
+      state,
+      isHydrated,
+      isLoggedIn,
+      currentUserId,
+      login,
+      logout,
+      updateUserStatus,
+      updatePrimaryStatus,
+      updateSettings,
+      completeOnboarding,
+      pauseToday,
+      extendedPause,
+      resumeFromPause,
+      activateSOS,
+      deactivateSOS,
+      useExtended,
+      resetExtended,
+      markCheckIn,
+    ],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
